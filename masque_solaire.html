@@ -1,0 +1,2815 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Masque solaire depuis une photo de fenêtre</title>
+<style>
+  :root{
+    --bg:#12161b; --panel:#1a2129; --panel2:#202932; --line:#2c3744;
+    --fg:#dde5ee; --muted:#8ea2b8; --acc:#4a9eff; --acc2:#3178c6;
+    --ok:#3ecf8e; --warn:#ffb454; --err:#ff6b5e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--fg);font:13px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  h1{font-size:15px;margin:0;font-weight:600}
+  h1 small{color:var(--muted);font-weight:400;font-size:12px}
+  header{display:flex;align-items:center;gap:14px;padding:9px 14px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+  header .sp{flex:1}
+  header .badge{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:2px 9px}
+  main{display:flex;gap:12px;padding:12px;align-items:flex-start}
+  #left{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:10px}
+  #viewBox{position:relative;border:1px solid var(--line);border-radius:8px;background:#0b0e12;padding:6px;display:flex;justify-content:center}
+  #view{display:block;max-width:100%;max-height:62vh;border-radius:4px;cursor:default;touch-action:none}
+  #dropHint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:var(--muted);gap:8px;border-radius:8px;pointer-events:none;text-align:center;padding:20px}
+  #dropHint b{color:var(--fg);font-size:15px}
+  #dropHint.hide{display:none}
+  #status{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .chip b{color:var(--fg);font-weight:600}
+  #chartBox{border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:6px}
+  #chartBar{padding:2px 6px 6px 2px}
+  #chart #chartInfo{font-size:11px}
+  #chart{display:block;width:100%;height:auto;border-radius:4px}
+  aside{flex:0 0 404px;max-height:calc(100vh - 74px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 10px 14px}
+  @media (max-width:1150px){ main{flex-direction:column} aside{flex:1 1 auto;width:100%;max-height:none} #view{max-height:48vh} }
+  details{border-bottom:1px solid var(--line);padding:6px 0}
+  details:last-child{border-bottom:none}
+  summary{cursor:pointer;font-weight:600;font-size:12.5px;letter-spacing:.02em;color:var(--fg);list-style:none;display:flex;align-items:center;gap:7px}
+  summary::-webkit-details-marker{display:none}
+  summary:before{content:"▸";color:var(--muted);font-size:11px;transition:transform .15s}
+  details[open] summary:before{transform:rotate(90deg)}
+  .body{padding:8px 2px 4px 16px;display:flex;flex-direction:column;gap:8px}
+  .row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  label{color:var(--muted);font-size:12px}
+  .lab{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+  input[type=number],input[type=text],select,input[type=date],input[type=time]{
+    background:#0f1419;color:var(--fg);border:1px solid var(--line);border-radius:5px;padding:4px 6px;font:inherit;font-size:12px}
+  input[type=number]{width:78px}
+  input[type=date],input[type=time]{width:auto}
+  input[type=range]{accent-color:var(--acc);flex:1 1 90px;min-width:70px}
+  button{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 10px;font:inherit;font-size:12px;cursor:pointer}
+  button:hover{border-color:var(--acc);color:#fff}
+  button.pri{background:var(--acc2);border-color:var(--acc)}
+  button.pri:hover{background:var(--acc)}
+  button.mini{padding:2px 7px;font-size:11px}
+  button.on{background:var(--acc2);border-color:var(--acc);color:#fff}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .seg{display:flex;gap:0}
+  .seg button{border-radius:0}
+  .seg button:first-child{border-radius:6px 0 0 6px}
+  .seg button:last-child{border-radius:0 6px 6px 0}
+  .small{color:var(--muted);font-size:11.5px;line-height:1.5}
+  .small code{background:#0f1419;border:1px solid var(--line);border-radius:3px;padding:0 3px;font-size:11px}
+  .small.link{color:var(--acc);cursor:pointer;text-decoration:underline}
+  .hint{border-left:2px solid var(--acc2);padding-left:8px;color:var(--muted);font-size:11.5px;line-height:1.5}
+  textarea{width:100%;height:120px;background:#0f1419;color:var(--fg);border:1px solid var(--line);border-radius:6px;
+    font:11.5px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:7px;resize:vertical}
+  table{border-collapse:collapse;width:100%;font-size:11.5px;font-variant-numeric:tabular-nums}
+  th,td{border-bottom:1px solid var(--line);padding:2px 4px;text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:500}
+  .val{color:var(--fg);font-weight:600}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)} .mut{color:var(--muted)}
+  .grid2{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:center;font-size:12px}
+  .grid2 .k{color:var(--muted)}
+  .grid2 .v{font-variant-numeric:tabular-nums}
+  #log{font:11px ui-monospace,monospace;color:var(--muted);white-space:pre-wrap;max-height:90px;overflow:auto}
+  input[type=file]{display:none}
+  .kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;font-size:10.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>☀ Masque solaire <small>— depuis une photo prise à la fenêtre</small></h1>
+  <span class="badge">projection rectiligne (sténopé)</span>
+  <span class="sp"></span>
+  <span class="small" id="hdrInfo"></span>
+</header>
+
+<main>
+  <section id="left">
+    <div id="viewBox">
+      <canvas id="view" width="1000" height="640"></canvas>
+      <div id="dropHint">
+        <b>Déposez une photo ici</b>
+        <span>ou utilisez « Charger une photo » / « Image de démonstration »</span>
+        <span class="small">Photo prise depuis la fenêtre, appareil le plus près possible du vitrage,<br/>
+        axe de l’objectif perpendiculaire à la façade.</span>
+      </div>
+    </div>
+    <div id="status">
+      <span class="chip">curseur <b id="stHover">–</b></span>
+      <span class="chip">calibrage <b id="stCal">–</b></span>
+      <span class="chip">masque <b id="stMask">non calculé</b></span>
+      <span class="chip">soleil <b id="stSun">–</b></span>
+    </div>
+    <div id="chartBox">
+      <div class="row" id="chartBar">
+        <span class="mut">Diagramme :</span>
+        <div class="seg">
+          <button id="chartMask" class="on">Ouverture du ciel (%)</button>
+          <button id="chartPhoto">Photo dépliée</button>
+        </div>
+        <span class="small" id="chartInfo"></span>
+      </div>
+      <canvas id="chart" width="1400" height="720"></canvas>
+    </div>
+  </section>
+
+  <aside id="panel">
+
+    <details open>
+      <summary>1 · Photo &amp; objectif</summary>
+      <div class="body">
+        <div class="row">
+          <button class="pri" id="btnFile">Charger une photo…</button>
+          <button id="btnDemo">Image de démonstration</button>
+          <input type="file" id="file" accept="image/*">
+        </div>
+        <div class="small" id="imgInfo">aucune image chargée</div>
+        <div class="lab">Champ de vision horizontal de l’objectif</div>
+        <div class="row" id="hfovRow">
+          <input type="range" id="hfovR" min="20" max="130" step="0.5" value="65">
+          <input type="number" id="hfovN" min="20" max="130" step="0.5" value="65">
+          <span class="mut">°</span>
+        </div>
+        <div class="row" id="hfovPresets">
+          <button class="mini" data-f35="13">0,5× (≈13 mm)</button>
+          <button class="mini" data-f35="26">1× (≈26 mm)</button>
+          <button class="mini" data-f35="52">2× (≈52 mm)</button>
+          <button class="mini" data-f35="77">3× (≈77 mm)</button>
+        </div>
+        <div class="small" id="f35info"></div>
+        <div class="small" id="exifInfo"></div>
+        <div class="small" id="zoomHint" style="display:none"></div>
+        <div class="hint">La focale équivalente 35 mm est lue automatiquement dans les données EXIF du fichier
+        lorsqu’elle est présente. Sinon : 0,5× ≈ 106° de champ, 1× ≈ 67°, 2× ≈ 37°.</div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>2 · Calibrage géométrique</summary>
+      <div class="body">
+        <div class="row"><span class="mut">Projection :</span>
+          <div class="seg">
+            <button id="projRect" class="on">Rectiligne (photo)</button>
+            <button id="projEq">Équirectangulaire (photosphère)</button>
+          </div>
+        </div>
+        <div class="small" id="projHint" style="display:none"></div>
+        <div class="row">
+          <span class="mut">Outil :</span>
+          <div class="seg">
+            <button id="modeHorizon" class="on">Horizon</button>
+            <button id="modeBrushSky">Pinceau ciel</button>
+            <button id="modeBrushObs">Pinceau obstacle</button>
+            <button id="modeEraser">Gomme</button>
+          </div>
+        </div>
+        <div class="row"><span class="mut">Taille du pinceau</span>
+          <input type="range" id="brushSizeR" min="6" max="240" step="2" value="80">
+          <span class="small" id="brushSizeVal">80 px</span>
+        </div>
+        <div class="hint" id="modeHint">Cliquez-glissez sur la <b>ligne d’horizon réelle</b> (altitude 0°) :
+        deux points suffisent, l’outil en déduit l’inclinaison (pitch) et le roulis (roll) de l’appareil.</div>
+        <div class="row">
+          <label>Azimut visé (°)</label>
+          <input type="range" id="azCenterR" min="0" max="360" step="1" value="180">
+          <input type="number" id="azCenterN" min="0" max="360" step="1" value="180">
+        </div>
+        <div class="small">Azimut du <b>centre optique</b> (0 = Nord, 90 = Est, 180 = Sud, 270 = Ouest).
+          Si la photo est prise perpendiculairement à la fenêtre : c’est l’azimut de la façade.</div>
+        <div class="small" id="azHint" style="display:none"></div>
+        <div class="small" id="poseHint" style="display:none"></div>
+        <div class="row">
+          <input type="checkbox" id="manualCalib"><label for="manualCalib">Horizon non visible → saisie manuelle</label>
+        </div>
+        <div class="row" id="manualRow" style="display:none">
+          <label>Inclinaison</label><input type="number" id="pitchN" step="0.1" value="0" style="width:70px"><span class="mut">°</span>
+          <label>Roulis</label><input type="number" id="psiN" step="0.1" value="0" style="width:70px"><span class="mut">°</span>
+          <button class="mini" id="btnStraighten">redresser</button>
+        </div>
+        <div class="row">
+          <button class="mini" id="btnHorizReset">horizon horizontal au centre</button>
+          <label class="small"><input type="checkbox" id="chkGrid" checked> grille az/alt sur la photo</label>
+        </div>
+        <div class="grid2" id="calReadout"></div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>3 · Masque ciel / obstacles</summary>
+      <div class="body">
+        <div class="row">
+          <button id="btnDetect">Détection auto du ciel</button>
+          <button id="btnInvert">Inverser</button>
+          <button id="btnClearBrush">Effacer pinceau</button>
+          <button id="btnUndo">Annuler</button>
+        </div>
+        <div class="row"><span class="mut">Seuil de détection</span>
+          <input type="range" id="thresR" min="0" max="80" step="1" value="18">
+          <span class="small" id="thresVal">18 %</span>
+        </div>
+        <div class="row"><label class="small"><input type="checkbox" id="chkFlood" checked>
+          ne retenir que le ciel relié au haut de l’image (évite les taches claires)</label></div>
+        <div class="row"><span class="mut">Exclure la bordure</span>
+          <input type="range" id="borderR" min="0" max="25" step="0.5" value="0">
+          <span class="small" id="borderVal">0 %</span>
+        </div>
+        <div class="small">Le <b>ciel</b> apparaît en <b>bleu translucide hachuré</b> (les hachures restent
+          lisibles même sur un ciel bleu). Corrigez au pinceau : « pinceau ciel » pour ajouter du ciel
+          (toits sombres, nuages clairs…), « pinceau obstacle » pour en retirer (cadre de fenêtre,
+          garde-corps, haie…), « gomme » pour annuler une retouche et revenir à la détection automatique.
+          Si le <b>cadre de la fenêtre</b> apparaît sur la photo, augmentez « exclure la bordure »
+          (le liseré est alors compté comme masquant).</div>
+        <div class="lab">Directions hors photo (au-delà du champ de l’objectif)</div>
+        <div class="row">
+          <label><input type="radio" name="unc" id="uncOpen" checked> dégagées (100 %)</label>
+          <label><input type="radio" name="unc" id="uncMask" > masquées (0 %)</label>
+        </div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>4 · Lieu &amp; position du soleil</summary>
+      <div class="body">
+        <div class="row">
+          <label>Latitude</label><input type="number" id="latN" step="0.0001" value="48.8530">
+          <label>Longitude</label><input type="number" id="lonN" step="0.0001" value="2.3499">
+          <label>UTC</label><input type="number" id="tzN" step="0.5" value="1" style="width:62px">
+        </div>
+        <div class="small">Fuseau horaire <b>standard</b> (sans heure d’été) — c’est la convention utilisée par
+          EnergyPlus. France : UTC+1. <label><input type="checkbox" id="chkDst"> afficher en heure locale (UTC+1 en été)</label></div>
+        <div class="small" id="geoHint" style="display:none"></div>
+        <div class="small" id="tzHint" style="display:none"></div>
+        <div class="row">
+          <label>Date</label><input type="date" id="dateIn" value="2026-06-21">
+          <label>Heure</label><input type="time" id="timeIn" value="14:00">
+          <button class="mini" id="btnNow">maintenant</button>
+        </div>
+        <div class="row"><label class="small"><input type="checkbox" id="chkSun" checked> tracer les courses du soleil</label></div>
+        <div class="grid2" id="sunReadout"></div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>5 · Résultats &amp; exports</summary>
+      <div class="body">
+        <div class="row">
+          <label>Pas azimut</label>
+          <select id="azStepSel">
+            <option value="1">1°</option><option value="2">2°</option><option value="5" selected>5°</option>
+            <option value="10">10°</option><option value="15">15°</option><option value="30">30°</option>
+          </select>
+          <label>Pas hauteur</label>
+          <select id="altStepSel">
+            <option value="1">1°</option><option value="2">2°</option><option value="5" selected>5°</option>
+            <option value="10">10°</option><option value="15">15°</option><option value="30">30°</option>
+          </select>
+          <button class="pri" id="btnComputeMask">Calculer</button>
+        </div>
+        <div class="grid2" id="maskReadout"></div>
+        <div id="monthBox"></div>
+        <div class="lab">Fichiers</div>
+        <div class="row">
+          <button id="btnCsvMask">Matrice CSV</button>
+          <button id="btnJson">JSON complet</button>
+          <button id="btnPngChart">Diagramme PNG</button>
+          <button id="btnPngPhoto">Photo annotée PNG</button>
+        </div>
+        <div class="row">
+          <button id="btnCsv8760">Ombrage horaire 8760 (CSV)</button>
+          <button id="btnCsvSolar">Détail soleil horaire</button>
+        </div>
+        <div class="row">
+          <label class="small"><input type="checkbox" id="chkLeap"> année bissextile (8784 h)</label>
+        </div>
+        <div class="row"><label class="small"><input type="checkbox" id="chkFr"> CSV Excel FR (; + virgule décimale)</label></div>
+        <div class="lab">Bloc EnergyPlus (Schedule:File)</div>
+        <div class="row">
+          <button class="mini" id="btnIdf">Télécharger le bloc .idf</button>
+          <button class="mini" id="btnCopy">Copier</button>
+        </div>
+        <textarea id="epSnippet" readonly></textarea>
+        <div id="log"></div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>6 · Relief (MNT IGN) — calage sur la silhouette</summary>
+      <div class="body">
+        <div class="row">
+          <button class="pri" id="btnDem">Calculer la silhouette (IGN)</button>
+          <span class="small" id="demStatus"><span class="mut">aucun profil chargé</span></span>
+        </div>
+        <div class="small">Un clic envoie <b>vos coordonnées</b> au service altimétrique de l’IGN
+          (data.geopf.fr) ; rien d’autre ne sort (ni la photo, ni le masque). La hauteur de prise de
+          vue est prise au-dessus du sol lu au MNT, jamais depuis l’altitude EXIF (ellipsoïdale).</div>
+        <div class="row">
+          <label>Pas d’azimut</label>
+          <select id="demStepSel">
+            <option value="2">2°</option><option value="5" selected>5°</option>
+            <option value="10">10°</option><option value="15">15°</option>
+          </select>
+          <label>Hauteur de prise de vue</label>
+          <input type="number" id="demHCam" step="0.5" min="0" max="80" value="5" style="width:64px"><span class="mut">m</span>
+        </div>
+        <div class="grid2" id="demReadout"></div>
+        <div class="row"><label class="small"><input type="checkbox" id="demShow" checked>
+          tracer la silhouette MNT sur la photo et le diagramme</label></div>
+        <div class="small">Sur la photo : <b>trait plein</b> = crête lointaine (&gt; 1,5 km, fiable),
+          <b>pointillés</b> = crête proche (indicative : le MNT ignore arbres et bâtiments). Les deux
+          sont tracés avec un liseré sombre pour rester lisibles sur ciel clair comme sur fond sombre.</div>
+        <div class="lab">Calage assisté (clics sur la photo)</div>
+        <div class="row">
+          <button id="btnDemMode">Placer des repères</button>
+          <button id="btnDemFit" disabled>Ajuster inclinaison/roulis</button>
+        </div>
+        <div class="row">
+          <button id="btnDemApply" disabled>Appliquer au calibrage</button>
+          <button id="btnDemClear" disabled>Effacer les repères</button>
+          <span class="small" id="demCount"></span>
+        </div>
+        <div class="row"><label class="small"><input type="checkbox" id="demSolveAz">
+          ajuster aussi l’azimut (nécessite au moins 4 repères bien étalés ; sinon le cap EXIF fait foi)</label></div>
+        <div class="small">Pointez 2 à 3 <b>repères de la silhouette</b> (sommet, col, épaule) — le clic
+          s’accroche à la frontière ciel/obstacle. L’ajustement privilégie les crêtes lointaines
+          (&gt; 2 km, précises) et écarte les repères aberrants. Rien n’est appliqué sans votre accord.</div>
+        <div class="grid2" id="demFit"></div>
+      </div>
+    </details>
+
+    <details>
+      <summary>7 · Méthode &amp; limites</summary>
+      <div class="body small">
+        <b>Protocole de prise de vue</b>
+        <ol style="margin:2px 0 6px 16px;padding:0">
+          <li>Se placer <b>le plus près possible du vitrage</b>, au centre de la fenêtre, à hauteur d’usage.</li>
+          <li>Axe de l’objectif <b>perpendiculaire à la façade</b>, appareil aussi <b>vertical</b> que possible
+              (l’outil corrige ensuite le roulis, et l’inclinaison par la ligne d’horizon ou le relief).</li>
+          <li>Objectif le plus <b>large</b> disponible (0,5× sur téléphone) — ou mieux, une <b>photosphère 360°</b> :
+              la projection est alors détectée automatiquement, le demi-ciel entier est couvert et aucun
+              calibrage n’est nécessaire.</li>
+          <li>Cadrer la <b>ligne d’horizon réelle</b> si elle est visible : c’est la référence d’altitude 0°.
+              Sinon, utiliser le <b>relief (section 6)</b> ou la saisie manuelle de l’inclinaison.</li>
+          <li>Noter les obstacles présents mais hors photo (auvent juste au-dessus, débords latéraux) : à défaut
+              de les voir, cocher « hors photo = masquées » pour rester conservateur.</li>
+        </ol>
+        <b>Ce que fait l’outil</b>
+        <ul style="margin:2px 0 6px 16px;padding:0">
+          <li><b>Lecture automatique des métadonnées</b> : focale équivalente 35 mm (donc champ de vision),
+              GPS + altitude + précision, décalage horaire (<code>OffsetTimeOriginal</code>, sinon heure locale
+              − heure UTC GPS), date et heure de prise de vue (marqueur soleil), cap boussole (signalé
+              magnétique s’il l’est), zoom numérique, orientation de l’image, photosphère (GPano) et gimbal
+              de drone (DJI).</li>
+          <li><b>Projection</b> : rectiligne (photo normale, corrigée du roulis et de l’inclinaison déduits de la
+              ligne d’horizon) ou équirectangulaire (photosphère : l’horizon est la ligne médiane de l’image).</li>
+          <li><b>Masque</b> : les pixels classés « ciel » remplissent la grille azimut × hauteur (taux d’ouverture
+              entre 0 et 100 %) ; les indicateurs intègrent en angle solide. Le diagramme se lit soit en
+              <b>taux d’ouverture</b>, soit en <b>photo dépliée</b> dans le plan azimut × hauteur.</li>
+          <li><b>Calage sur le relief (section 6)</b> : le MNT de l’IGN prédit la silhouette du terrain depuis la
+              position GPS ; deux ou trois repères pointés sur la photo en tirent inclinaison et roulis absolus.</li>
+          <li><b>Ombrage horaire</b> : position du soleil (algorithme NOAA) échantillonnée dans la grille, pour
+              produire la série 8760 en heure standard.</li>
+        </ul>
+        <b>Limites</b>
+        <ul style="margin:2px 0 0 16px;padding:0">
+          <li>Modèle <b>sans distorsion</b> : les objectifs très grand-angle ont une distorsion en barillet.</li>
+          <li><b>Parallaxe</b> si l’appareil n’est pas dans le plan du vitrage ; le cadre et le tableau de la
+              fenêtre visibles sur la photo comptent comme des directions masquées (correct si le point de calcul
+              est à l’endroit de la prise de vue).</li>
+          <li>La <b>détection automatique du ciel</b> doit toujours être vérifiée au pinceau.</li>
+          <li>Le <b>relief</b> est un modèle de <i>sol nu</i> : ni arbres ni bâtiments — il ne cale que la crête
+              lointaine (au-delà du kilomètre), le proche reste le travail de la photo.</li>
+          <li>Les <b>directions hors champ</b> de la photo reçoivent la valeur supposée choisie, faute de mesure.</li>
+        </ul>
+      </div>
+    </details>
+    </details>
+
+  </aside>
+</main>
+
+<script>
+'use strict';
+/* ============================================================================
+   MASQUE SOLAIRE — outil d'analyse d'ombrage solaire à partir d'une photo
+   ----------------------------------------------------------------------------
+   Chaîne de traitement :
+      photo  ->  calibrage optique (focale, horizon, azimut)
+             ->  classification ciel / obstacles
+             ->  grille de masque (azimut × hauteur) par projection sténopé
+             ->  série horaire d'ombrage (position du soleil NOAA)
+   Tout est contenu dans ce fichier, aucun envoi réseau.
+   ========================================================================== */
+
+const DEG = Math.PI/180;
+const $ = (id) => document.getElementById(id);
+const R2D = 180/Math.PI;
+
+/* ==========================================================================
+   0. ÉTAT GLOBAL
+   ========================================================================== */
+const S = {
+  base: null,            // canvas de la photo à la résolution de travail
+  W: 0, H: 0,            // résolution de travail
+  srcW: 0, srcH: 0,      // résolution d'origine
+  fileName: '',
+  imageData: null,
+  hfov: 65,              // champ horizontal de l'objectif (°)
+  f35: null,             // focale équivalente 35 mm lue dans l'EXIF
+  exif: null,            // métadonnées EXIF lues dans la photo
+  proj: 'rect',          // 'rect' (sténopé) | 'equirect' (photosphère 360°)
+  azSpan: 360,           // étendue azimutale couverte par l'image (équirectangulaire)
+  altTop: 90, altBottom: -90,
+  hz: null,              // ligne d'horizon {x1,y1,x2,y2} (px résolution de travail)
+  manual: false,         // calibrage manuel (horizon non visible)
+  manPitch: 0, manPsi: 0,
+  azCenter: 180,         // azimut du centre optique (° depuis le Nord)
+  cal: null,             // calibrage calculé {f,cx,cy,psi,pitch}
+  cam: null,             // base caméra précalculée
+  auto: null,            // Uint8Array : ciel détecté automatiquement
+  brush: null,           // Uint8Array : 0=aucun, 1=ciel forcé, 2=obstacle forcé
+  ov: null, ovCtx: null, ovData: null,
+  threshold: 18, flood: true, border: 0,
+  uncovered: 1,          // ouverture par défaut hors photo
+  mode: "horizon", brushSize: 80,
+  lat: 48.8530, lon: 2.3499, tz: 1, dst: false,
+  date: '2026-06-21', time: '14:00',
+  azStep: 5, altStep: 5,
+  grid: null,
+  chartMode: 'mask',     // 'mask' (taux d'ouverture) | 'photo' (photo dépliée)
+  reprojKey: null, reprojCanvas: null,
+  dem: { enabled: false, show: true, hCam: 5, step: 5, nRad: 34,
+         profile: null, points: [], fit: null },
+  hover: null, drag: null, undo: [],
+  hourly: null, monthly: null,
+  showGrid: true, showSun: true,
+};
+
+/* ==========================================================================
+   1. GÉOMÉTRIE & ASTRONOMIE  (partie purement mathématique, testable)
+   ========================================================================== */
+// ==MATH-BEGIN==
+function clamp(v, a, b){ return v < a ? a : (v > b ? b : v); }
+function norm360(d){ d = d % 360; return d < 0 ? d + 360 : d; }
+function norm180(d){ d = norm360(d); return d > 180 ? d - 360 : d; }
+
+/** Jour de l'année (1..366) */
+function dayOfYear(y, m, d){
+  return Math.floor((Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 1)) / 86400000) + 1;
+}
+/** Date {m,d} depuis le jour de l'année (année non bissextile ou bissextile) */
+function dateFromDoy(y, doy){
+  const t = new Date(Date.UTC(y, 0, 1)); t.setUTCDate(doy);
+  return { m: t.getUTCMonth() + 1, d: t.getUTCDate() };
+}
+
+/**
+ * Position du soleil — algorithmes NOAA (précision ~0,1°).
+ * @param hour heure locale STANDARD (0-23), minute 0-59
+ * @return {az, alt} en degrés (azimut depuis le Nord, horaire ; hauteur sur l'horizon)
+ */
+function sunPos(lat, lon, tz, y, m, d, hour, minute){
+  const doy = dayOfYear(y, m, d);
+  const g = 2*Math.PI/365 * (doy - 1 + (hour - 12)/24);
+  const eqtime = 229.18*(0.000075 + 0.001868*Math.cos(g) - 0.032077*Math.sin(g)
+               - 0.014615*Math.cos(2*g) - 0.040849*Math.sin(2*g));
+  const decl = 0.006918 - 0.399912*Math.cos(g) + 0.070257*Math.sin(g)
+             - 0.006758*Math.cos(2*g) + 0.000907*Math.sin(2*g)
+             - 0.002697*Math.cos(3*g) + 0.00148*Math.sin(3*g);
+  const tmin = hour*60 + minute + eqtime + 4*lon - 60*tz;
+  const ha = (tmin/4 - 180) * DEG;                 // angle horaire (rad)
+  const latr = lat*DEG;
+  const cosZ = clamp(Math.sin(latr)*Math.sin(decl) + Math.cos(latr)*Math.cos(decl)*Math.cos(ha), -1, 1);
+  const alt = 90 - Math.acos(cosZ)*R2D;
+  // azimut mesuré depuis le Sud (positif vers l'Ouest) -> depuis le Nord (horaire)
+  const az = norm360(Math.atan2(Math.sin(ha), Math.cos(ha)*Math.sin(latr) - Math.tan(decl)*Math.cos(latr))*R2D + 180);
+  return { az, alt };
+}
+
+/**
+ * Calibrage : focale en pixels depuis le champ horizontal.
+ */
+function focalFromHfov(hfovDeg, W){
+  return (W/2) / Math.tan(hfovDeg*DEG/2);
+}
+function hfovFromF35(f35, W, H){
+  const D = Math.hypot(W, H);
+  const f = (D/2) * f35 / 21.6333;                 // focale équivalente -> pixels
+  return 2*Math.atan((W/2)/f)*R2D;
+}
+function f35FromHfov(hfovDeg, W, H){
+  const f = focalFromHfov(hfovDeg, W);
+  const D = Math.hypot(W, H);
+  return f * 21.6333 / (D/2);
+}
+
+/**
+ * Déduit inclinaison (pitch) et roulis (psi) de la ligne d'horizon tracée sur la photo.
+ * L'ordre des 2 points cliqués n'a pas d'influence (normalisation).
+ */
+function calibFromHorizon(f, cx, cy, hz){
+  const dx = hz.x2 - hz.x1, dy = hz.y2 - hz.y1;
+  const len = Math.hypot(dx, dy) || 1;
+  let ux = dx/len, uy = dy/len;
+  let psi = Math.atan2(uy, ux);                    // angle image de l'horizon (y vers le bas)
+  // distance perpendiculaire signée centre -> droite (positif = droite sous le centre)
+  let dPix = (cx - hz.x1)*uy - (cy - hz.y1)*ux;
+  if (psi > Math.PI/2 || psi <= -Math.PI/2){       // ordre des points inversé
+    psi = psi > Math.PI/2 ? psi - Math.PI : psi + Math.PI;
+    dPix = -dPix;
+  }
+  const pitch = Math.atan(dPix / f);               // >0 : appareil incliné vers le haut
+  return { psi, pitch, dPix };
+}
+
+/** Base caméra (repère ENU) : rectiligne (sténopé) ou équirectangulaire (photosphère 360°). */
+function makeCam(cal){
+  if (cal.proj === 'equirect'){
+    const span = (cal.azSpan !== undefined && cal.azSpan !== null) ? cal.azSpan : 360;
+    return { proj: 'equirect', W: cal.W, H: cal.H, azSpan: span,
+      azLeft: norm360((cal.azCenter || 180) - span/2),
+      altTop: (cal.altTop !== undefined && cal.altTop !== null) ? cal.altTop : 90,
+      altBottom: (cal.altBottom !== undefined && cal.altBottom !== null) ? cal.altBottom : -90,
+      azCenter: norm360(cal.azCenter || 180) };
+  }
+  const A = cal.azCenter*DEG, P = cal.pitch;
+  return {
+    proj: 'rect',
+    f: cal.f, cx: cal.cx, cy: cal.cy,
+    cosPsi: Math.cos(cal.psi), sinPsi: Math.sin(cal.psi),
+    fx: Math.cos(P)*Math.sin(A), fy: Math.cos(P)*Math.cos(A), fz: Math.sin(P),
+    rx: Math.cos(A), ry: -Math.sin(A), rz: 0,
+    ux: -Math.sin(P)*Math.sin(A), uy: -Math.sin(P)*Math.cos(A), uz: Math.cos(P),
+    azCenter: norm360(cal.azCenter), pitchDeg: cal.pitch*R2D, rollDeg: norm180(cal.psi*R2D),
+  };
+}
+
+/** Pixel -> direction (azimut, hauteur) */
+function pixelToAzAlt(cam, x, y){
+  if (cam.proj === 'equirect'){
+    return { az: norm360(cam.azLeft + (x/cam.W)*cam.azSpan),
+             alt: cam.altTop + (y/cam.H)*(cam.altBottom - cam.altTop) };
+  }
+  const X = (x - cam.cx)/cam.f, Y = (y - cam.cy)/cam.f;
+  const Xp =  X*cam.cosPsi + Y*cam.sinPsi;          // dé-roulis
+  const Yp = -X*cam.sinPsi + Y*cam.cosPsi;
+  const a = Xp, b = -Yp;                            // composantes droite / haut
+  const dx = a*cam.rx + b*cam.ux + cam.fx;
+  const dy = a*cam.ry + b*cam.uy + cam.fy;
+  const dz = a*cam.rz + b*cam.uz + cam.fz;
+  const n = Math.hypot(dx, dy, dz) || 1;
+  return { az: norm360(Math.atan2(dx/n, dy/n)*R2D), alt: Math.asin(clamp(dz/n, -1, 1))*R2D };
+}
+
+/** Direction (azimut, hauteur) -> pixel, ou null si hors du champ */
+function azAltToPixel(cam, az, alt){
+  if (cam.proj === 'equirect'){
+    const span = cam.azSpan || 360;
+    let d = norm360(az - cam.azLeft);
+    if (span >= 359.9 && d > 180) d -= 360;         // repli 360° (panorama complet seulement)
+    return { x: (d/span)*cam.W, y: (alt - cam.altTop)/(cam.altBottom - cam.altTop)*cam.H };
+  }
+  const A = az*DEG, H = alt*DEG;
+  const ca = Math.cos(H);
+  const dx = ca*Math.sin(A), dy = ca*Math.cos(A), dz = Math.sin(H);
+  const Z = dx*cam.fx + dy*cam.fy + dz*cam.fz;      // profondeur
+  if (Z <= 1e-6) return null;
+  const u = (dx*cam.rx + dy*cam.ry + dz*cam.rz)/Z;
+  const v = (dx*cam.ux + dy*cam.uy + dz*cam.uz)/Z;
+  const Xp = u, Yp = -v;
+  const X = Xp*cam.cosPsi - Yp*cam.sinPsi;
+  const Y = Xp*cam.sinPsi + Yp*cam.cosPsi;
+  return { x: cam.cx + cam.f*X, y: cam.cy + cam.f*Y };
+}
+
+/** Valeur numérique d'un tag XMP : élément <…:Nom>valeur< ou attribut Nom="valeur" */
+function xmpNum(txt, name){
+  if (!txt) return null;
+  const m = new RegExp(name + '\\s*[>=]\\s*"?\\s*([-+]?[0-9]*\\.?[0-9]+)', 'i').exec(txt);
+  return m ? parseFloat(m[1]) : null;
+}
+/** Valeur texte d'un tag XMP */
+function xmpStr(txt, name){
+  if (!txt) return null;
+  const m = new RegExp(name + '\\s*[>=]\\s*"?([^"<\\r\\n]*)', 'i').exec(txt);
+  return m ? m[1].trim() : null;
+}
+
+/* ---------------------------------------------------------------------------
+   Relief (MNT) : profil de silhouette et calage assisté.
+   Aucune de ces fonctions ne fait d'appel réseau (elles sont testables seules).
+   --------------------------------------------------------------------------- */
+
+/** Abaissement dû à la courbure terrestre, corrigé de la réfraction (m). */
+function demCurvatureDrop(d){
+  return d*d*0.87 / (2*6371000);                 // (1 - k) avec k = 0,13
+}
+
+/** Angle de hauteur (deg) d'un point de terrain vu depuis la caméra. */
+function demTerrainAngle(d, zTerrain, zCam){
+  if (d <= 0) return 90;
+  return Math.atan2((zTerrain - zCam) - demCurvatureDrop(d), d) * R2D;
+}
+
+/** Silhouette d'un azimut à partir des échantillons radiaux :
+ *  @param dists distances (m, croissantes), zs altitudes terrain (m), zCam altitude caméra (m)
+ *  @return {alt, dist} : hauteur (°) et distance (m) de la crête la plus haute */
+function demSkylineFromSamples(dists, zs, zCam){
+  let alt = -90, dist = 0;
+  for (let i = 0; i < dists.length; i++){
+    const a = demTerrainAngle(dists[i], zs[i], zCam);
+    if (a > alt){ alt = a; dist = dists[i]; }
+  }
+  return { alt, dist };
+}
+
+/** Interpolation circulaire du profil de silhouette : profil = {az:[], alt:[], dist:[]} régulier */
+function demInterp(profile, az){
+  const n = profile.az.length;
+  if (!n) return null;
+  const step = 360/n;
+  const x = norm360(az)/step;
+  const i0 = Math.floor(x) % n, i1 = (i0 + 1) % n, f = x - Math.floor(x);
+  return { alt: profile.alt[i0]*(1 - f) + profile.alt[i1]*f,
+           dist: profile.dist[i0]*(1 - f) + profile.dist[i1]*f };
+}
+
+/** Médiane d'un tableau (0 si vide) */
+function median(v){
+  const s = v.slice().sort((a, b) => a - b), n = s.length;
+  return n ? (n % 2 ? s[(n - 1)/2] : 0.5*(s[n/2 - 1] + s[n/2])) : 0;
+}
+
+/** Arrondi sûr (null si la valeur n'est pas finie) */
+function fin(x){ return (x !== null && x !== undefined && isFinite(x)) ? +x.toFixed(3) : null; }
+
+/** Sélection robuste des repères : écarte les aberrants dans les deux sens (médiane/MAD)
+ *  et tout repère physiquement impossible (observé sous le prédit). */
+function robustKeep(pts){
+  const res = pts.map((q) => q.res);
+  const med = median(res);
+  const mad = median(res.map((r) => Math.abs(r - med)));
+  const thr = Math.max(0.8, 5*1.4826*mad);
+  const keep = [];
+  for (let i = 0; i < pts.length; i++){
+    const q = pts[i];
+    if (Math.abs(q.res - med) > thr) continue;          // trop loin du comportement médian
+    if (q.res < -(0.8 + Math.abs(med))) continue;       // sous la crête prédite = impossible
+    keep.push(i);
+  }
+  return keep;
+}
+
+/** Combinaisons de k indices parmi n (n ≤ 10 : liste explicite) */
+function combinaisons(n, k){
+  const out = [];
+  const rec = (start, cur) => {
+    if (cur.length === k){ out.push(cur.slice()); return; }
+    for (let i = start; i < n; i++){ cur.push(i); rec(i + 1, cur); cur.pop(); }
+  };
+  rec(0, []);
+  return out;
+}
+
+/** Ajustement (inclinaison, roulis [, azimut]) pour que les repères cliqués tombent sur la silhouette.
+ *  Sélection robuste : RANSAC exhaustif (peu de repères, cas normal ici) ; au-delà de 8 repères,
+ *  ajustement global puis rejet médiane/MAD.
+ *  @param profile profil MNT ; clicks = [{x,y}] en pixels de l'image de travail
+ *  @param base calibrage courant : {f, cx, cy, pitchDeg, rollDeg, azCenter}
+ *  @param opts {solveAz}
+ *  @return {pitch, roll, azCenter, rms, n, meanDist, pts, sigPitch, sigRoll, sigAz, rejected, dof} ou {err} */
+function fitPoseToSkyline(profile, clicks, base, opts){
+  const o = opts || {};
+  const solveAz = !!o.solveAz;
+  const mk = (p, r, a) => makeCam({ proj: 'rect', f: base.f, cx: base.cx, cy: base.cy,
+    pitch: p*DEG, psi: r*DEG, azCenter: a });
+  const evalAt = (p, r, a, cl) => {
+    const cam = mk(p, r, a), pts = [];
+    for (const c of (cl || clicks)){
+      const d = pixelToAzAlt(cam, c.x, c.y);
+      if (!isFinite(d.alt) || d.alt < -30 || d.alt > 89) continue;
+      const pr = demInterp(profile, d.az);
+      if (!pr) continue;
+      const w = Math.min(1, Math.max(0.25, pr.dist/2000));      // crête lointaine = référence
+      pts.push({ az: d.az, obs: d.alt, pred: pr.alt, dist: pr.dist, res: d.alt - pr.alt, w });
+    }
+    let s = 0, sw = 0;
+    for (const q of pts){ s += q.w*q.res*q.res; sw += q.w; }
+    return { pts, cost: Math.sqrt(s/Math.max(1e-9, sw)) };
+  };
+  const idx = solveAz ? [0, 1, 2] : [0, 1];
+  const epsA = [0.05, 0.05, 0.05];
+  const normal = (p, r, a, e) => {
+    const cols = [], P = [p, r, a], m = idx.length;
+    for (const k of idx){
+      const P2 = P.slice(); P2[k] += epsA[k];
+      const e2 = evalAt(P2[0], P2[1], P2[2]);
+      cols.push(e2.pts.length === e.pts.length
+        ? e2.pts.map((q, i2) => (q.res - e.pts[i2].res)/epsA[k]) : e.pts.map(() => 0));
+    }
+    const A = [], b = [];
+    for (let i2 = 0; i2 < m; i2++){ A.push(new Array(m).fill(0)); b.push(0); }
+    e.pts.forEach((q, i2) => {
+      for (let i3 = 0; i3 < m; i3++){
+        b[i3] -= q.w * cols[i3][i2] * q.res;
+        for (let j3 = 0; j3 < m; j3++) A[i3][j3] += q.w * cols[i3][i2] * cols[j3][i2];
+      }
+    });
+    return { A, b, m };
+  };
+  const runFrom = (p0, r0, a0, cl) => {
+    let p = p0, r = r0, a = a0;
+    let e = evalAt(p, r, a, cl);
+    if (e.pts.length < 2) return null;
+    for (let it = 0; it < 20; it++){
+      const nm = normal(p, r, a, e);
+      const dP = solveLin(nm.A, nm.b);
+      if (!dP) break;
+      const P3 = [p, r, a];
+      let moved = 0;
+      for (let k = 0; k < nm.m; k++){ P3[idx[k]] += dP[k]; moved = Math.max(moved, Math.abs(dP[k])); }
+      const e3 = evalAt(P3[0], P3[1], P3[2], cl);
+      if (e3.pts.length < 2) break;
+      if (e3.cost <= e.cost){ p = P3[0]; r = P3[1]; a = P3[2]; e = e3; }
+      if (moved < 1e-4) break;
+    }
+    return { p, r, a, e };
+  };
+  const bestOf = (cl) => {
+    let best = null;
+    const azOff = solveAz ? [-12, 0, 12] : [0];
+    for (const da of azOff){
+      for (const dp of [-2, 0, 2]){
+        const s = runFrom((base.pitchDeg || 0) + dp, base.rollDeg || 0, (base.azCenter || 0) + da, cl);
+        if (s && (!best || s.e.cost < best.e.cost)) best = s;
+      }
+    }
+    return best;
+  };
+
+  const m = idx.length;
+  if (clicks.length < m) return { err: 'repères insuffisants : il en faut au moins ' + m };
+  let sol = null, inlierSub = null;
+  if (clicks.length <= 8){
+    // RANSAC exhaustif : toutes les combinaisons de m repères, puis on garde celle qui recrute
+    // le plus d'inliers avec une tolérance FIXE (0,8°), et on réajuste sur ces inliers.
+    const TOL = 0.8;
+    let best = null;
+    for (const sub of combinaisons(clicks.length, m)){
+      const s = bestOf(sub.map((i2) => clicks[i2]));
+      if (!s) continue;
+      const ev = evalAt(s.p, s.r, s.a);                       // évalué sur TOUS les repères
+      const inl = [];
+      for (let i2 = 0; i2 < ev.pts.length; i2++)
+        if (Math.abs(ev.pts[i2].res) <= TOL) inl.push(i2);
+      if (inl.length < m) continue;
+      const s2 = bestOf(inl.map((i2) => clicks[i2]));         // réajustement sur les inliers
+      if (!s2) continue;
+      const score = inl.length*1000 - s2.e.cost;
+      if (!best || score > best.score) best = { score, p: s2.p, r: s2.r, a: s2.a, inl };
+    }
+    if (best){ sol = best; inlierSub = best.inl; }
+  }
+  if (!sol){
+    // beaucoup de repères : ajustement global puis rejet médiane/MAD
+    const s0 = bestOf(null);
+    if (!s0) return { err: 'repères insuffisants (il en faut au moins 2 exploitables)' };
+    const e0 = evalAt(s0.p, s0.r, s0.a);
+    const res = e0.pts.map((q) => q.res), med = median(res);
+    const mad = median(res.map((v) => Math.abs(v - med)));
+    const thr = Math.max(0.8, 5*1.4826*mad);
+    const keep = [];
+    for (let i2 = 0; i2 < e0.pts.length; i2++)
+      if (Math.abs(e0.pts[i2].res - med) <= thr && e0.pts[i2].res > -(0.8 + Math.abs(med))) keep.push(i2);
+    inlierSub = keep;
+  }
+  if (!inlierSub || inlierSub.length < m){
+    return { err: 'ajustement impossible (repères incohérents ou hors champ)' };
+  }
+  const clFinal = inlierSub.map((i2) => clicks[i2]).filter(Boolean);
+  const sf = bestOf(clFinal);
+  if (!sf) return { err: 'ajustement impossible (repères incohérents ou hors champ)' };
+  const p = sf.p, r = sf.r, a = sf.a, e = sf.e;
+
+  // incertitudes : sigma_i = sqrt(sigma² · (JᵗWJ)⁻¹_ii)
+  let sigPitch = null, sigRoll = null, sigAz = null, singular = false;
+  const nm = normal(p, r, a, e);
+  const dof = e.pts.length - nm.m;
+  let ssr = 0, sw = 0;
+  for (const q of e.pts){ ssr += q.w*q.res*q.res; sw += q.w; }
+  const s2 = (ssr/Math.max(1e-9, sw)) / Math.max(1, dof);
+  const invDiag = [];
+  for (let i2 = 0; i2 < nm.m; i2++){
+    const unit = new Array(nm.m).fill(0); unit[i2] = 1;
+    const col = solveLin(nm.A, unit);
+    if (!col){ singular = true; invDiag.push(NaN); } else invDiag.push(Math.max(0, col[i2]));
+  }
+  if (dof > 0 && !singular){
+    if (nm.m >= 1) sigPitch = Math.sqrt(s2*invDiag[0]);
+    if (nm.m >= 2) sigRoll = Math.sqrt(s2*invDiag[1]);
+    if (nm.m >= 3) sigAz = Math.sqrt(s2*invDiag[2]);
+  }
+  return { pitch: p, roll: r, azCenter: a, rms: +e.cost.toFixed(3), n: e.pts.length,
+    meanDist: Math.round(e.pts.reduce((s3, q) => s3 + q.dist, 0)/e.pts.length),
+    pts: e.pts, rejected: Math.max(0, clicks.length - e.pts.length),
+    singular: singular, dof: dof,
+    sigPitch: fin(sigPitch), sigRoll: fin(sigRoll), sigAz: fin(sigAz) };
+}
+
+/** Résolution d'un petit système linéaire (Gauss-Jordan avec pivot partiel) */
+function solveLin(A, b){
+  const n = b.length;
+  const M = A.map((row, i) => row.concat([b[i]]));
+  for (let c = 0; c < n; c++){
+    let piv = c;
+    for (let r2 = c + 1; r2 < n; r2++) if (Math.abs(M[r2][c]) > Math.abs(M[piv][c])) piv = r2;
+    if (Math.abs(M[piv][c]) < 1e-12) return null;
+    const t = M[c]; M[c] = M[piv]; M[piv] = t;
+    for (let r2 = 0; r2 < n; r2++){
+      if (r2 === c) continue;
+      const f = M[r2][c]/M[c][c];
+      for (let k = c; k <= n; k++) M[r2][k] -= f*M[c][k];
+    }
+  }
+  const x = [];
+  for (let i = 0; i < n; i++) x.push(M[i][n]/M[i][i]);
+  return x;
+}
+
+/** Échantillonnage bilinéaire (avec repli circulaire en azimut) d'une grille de masque */
+function sampleGrid(g, az, alt){
+  const a = norm360(az)/g.azStep;
+  let i0 = Math.floor(a), f = a - i0;
+  let i1 = (i0 + 1) % g.naz; i0 = ((i0 % g.naz) + g.naz) % g.naz;
+  const b = Math.max(0, alt)/g.altStep;
+  let j0 = Math.floor(b), fj = b - j0;
+  let j1 = j0 + 1;
+  j0 = clamp(j0, 0, g.nalt - 1); j1 = clamp(j1, 0, g.nalt - 1);
+  const i00 = j0*g.naz + i0, i01 = j0*g.naz + i1, i10 = j1*g.naz + i0, i11 = j1*g.naz + i1;
+  return (1 - fj)*((1 - f)*g.openness[i00] + f*g.openness[i01])
+       + fj*((1 - f)*g.openness[i10] + f*g.openness[i11]);
+}
+
+/** Angle solide d'une cellule de grille (sr) */
+function cellSolidAngle(altLo, altHi, azStep){
+  return (altHi - altLo)*DEG * (azStep*DEG);
+}
+
+/** Indice de la cellule de grille la plus proche d'une direction */
+function gridCellIndex(g, az, alt){
+  const ia = ((Math.round(norm360(az)/g.azStep) % g.naz) + g.naz) % g.naz;
+  const il = clamp(Math.round(Math.max(0, alt)/g.altStep), 0, g.nalt - 1);
+  return il*g.naz + ia;
+}
+
+/** "+02:00" -> 2 (heures décimales), ou null si illisible */
+function asciiToOffset(s){
+  if (!s) return null;
+  const m = /^\s*([+-])?\s*(\d{1,2}):?(\d{2})?\s*$/.exec(String(s));
+  if (!m) return null;
+  const v = (parseInt(m[2], 10) + parseInt(m[3] || '0', 10)/60) * (m[1] === '-' ? -1 : 1);
+  return (v >= -14 && v <= 14) ? v : null;
+}
+
+/** Décalage horaire utilisé par l'appareil (heure d'été incluse).
+ *  Priorité au tag EXIF OffsetTimeOriginal, sinon heure locale − heure UTC GPS.
+ *  @return {tz, exact} ou null */
+function tzFromExif(ex){
+  if (!ex) return null;
+  if (ex.offset !== null && ex.offset !== undefined) return { tz: ex.offset, exact: true };
+  if (!ex.utc || !ex.date) return null;
+  const m = /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(ex.date);
+  if (!m) return null;
+  const local = Date.parse(m[1] + '-' + m[2] + '-' + m[3] + 'T' + m[4] + ':' + m[5] + ':' + m[6] + 'Z');
+  const utc = Date.parse(ex.utc);
+  if (!isFinite(local) || !isFinite(utc)) return null;
+  const h = (local - utc)/3600000;
+  if (!(h >= -14 && h <= 14)) return null;
+  // l'horloge GPS peut dater de quelques minutes : on tolère, puis on arrondit au quart d'heure
+  return { tz: Math.round(h*4)/4, exact: false };
+}
+
+/** Vrai si l'orientation EXIF déclarée (5-8 : rotation 90°) n'a PAS été appliquée par le
+ *  navigateur : les dimensions reçues sont alors dans le sens du capteur, pas pivotées. */
+function orientNotApplied(orient, pxW, pxH, srcW, srcH){
+  if (!orient || orient < 5 || !pxW || !pxH) return false;
+  const asIs = (Math.abs(pxW - srcW) < 3 && Math.abs(pxH - srcH) < 3);
+  const swapped = (Math.abs(pxW - srcH) < 3 && Math.abs(pxH - srcW) < 3);
+  return asIs && !swapped;
+}
+
+/* Échelle de couleur du taux d'ouverture au ciel (interpolation d'une palette type « plasma ») :
+ * indigo sombre = masqué (0 %), magenta/orange = intermédiaire, jaune vif = ouvert (100 %).
+ * Ni vert ni blanc : le masque se lit comme « là où c'est clair, le soleil passe ». */
+const OPENNESS_SCALE = [
+  [ 13,   8, 135], [ 75,   3, 161], [139,  10, 165], [188,  55, 135],
+  [222, 100,  97], [246, 145,  65], [255, 193,  39], [251, 232,  15], [240, 249,  33]
+];
+function opennessColor(o){
+  const x = clamp(o, 0, 1) * (OPENNESS_SCALE.length - 1);
+  const i = Math.min(OPENNESS_SCALE.length - 2, Math.floor(x));
+  const f = x - i, a = OPENNESS_SCALE[i], b = OPENNESS_SCALE[i + 1];
+  return 'rgb(' + Math.round(a[0] + (b[0] - a[0])*f) + ',' + Math.round(a[1] + (b[1] - a[1])*f)
+    + ',' + Math.round(a[2] + (b[2] - a[2])*f) + ')';
+}
+
+/* Hachures du calque ciel (sur la photo) : bandes diagonales, pour rester lisibles même sur un ciel
+ * bleu où un simple voile bleu translucide se confondrait avec l'image (bleu sur bleu). */
+function skyHatchPeriod(W){ return Math.max(12, Math.round(W/60)); }
+function skyHatchOn(x, y, per, th){
+  const m = (x + y) % per;
+  return (m < 0 ? m + per : m) < th;
+}
+// ==MATH-END==
+
+/* ==========================================================================
+   2. CANVAS / VUE
+   ========================================================================== */
+const view = $('view');
+const vctx = view.getContext('2d');
+const chart = $('chart');
+const cctx = chart.getContext('2d');
+
+function logMsg(s){
+  const el = $('log');
+  el.textContent = (new Date()).toLocaleTimeString('fr-FR') + '  ' + s + '\n' + el.textContent;
+}
+
+function setStatus(){
+  if (S.hover){
+    $('stHover').textContent = 'az ' + S.hover.az.toFixed(1) + '° / haut ' + S.hover.alt.toFixed(1) + '°';
+  } else $('stHover').textContent = '–';
+
+  if (S.cal){
+    $('stCal').textContent = (S.proj === 'equirect')
+      ? ('photosphère · az ' + S.cam.azCenter.toFixed(0) + '° au centre · hauteur '
+         + S.cam.altTop.toFixed(0) + '° à ' + S.cam.altBottom.toFixed(0) + '°')
+      : ('FOV ' + S.hfov.toFixed(1) + '° · az ' + S.cam.azCenter.toFixed(0)
+         + '° · incl ' + S.cam.pitchDeg.toFixed(1) + '° · roulis ' + S.cam.rollDeg.toFixed(1) + '°');
+  } else $('stCal').textContent = '–';
+
+  if (S.grid){
+    const m = S.grid.metrics;
+    $('stMask').textContent = 'ciel ' + (m.svfEst*100).toFixed(0) + ' % · photo ' + (m.coverage*100).toFixed(0) + ' % du demi-ciel';
+  } else if (S.auto) $('stMask').textContent = 'détecté, à calculer';
+  else $('stMask').textContent = 'non calculé';
+}
+
+function resizeView(){
+  view.width = S.W; view.height = S.H;
+}
+
+function draw(){
+  if (!S.base) return;
+  const W = S.W, H = S.H;
+  vctx.setTransform(1, 0, 0, 1, 0, 0);
+  vctx.clearRect(0, 0, W, H);
+  vctx.drawImage(S.base, 0, 0);
+  if (S.ov) vctx.drawImage(S.ov, 0, 0);
+  updateCam();
+  if (S.cam){
+    if (S.showGrid) drawGridOnPhoto();
+    if (S.dem.profile && S.dem.show) drawDemOnPhoto();
+    if (S.showSun) drawSunPathsOnPhoto();
+    drawHorizonUI();
+    drawSunMarker();
+  }
+  drawBrushCursor();
+}
+
+function updateCam(){
+  if (!S.base) { S.cal = null; S.cam = null; return; }
+  if (S.proj === 'equirect'){
+    S.cal = { proj: 'equirect', W: S.W, H: S.H, azCenter: S.azCenter, azSpan: S.azSpan,
+              altTop: S.altTop, altBottom: S.altBottom };
+    S.cam = makeCam(S.cal);
+    $('calReadout').innerHTML =
+      row2('projection', 'équirectangulaire (photosphère)')
+    + row2('azimut au centre de l’image', S.cam.azCenter.toFixed(1) + '°')
+    + row2('azimut au bord gauche', S.cam.azLeft.toFixed(1) + '°')
+    + row2('plage de hauteur', S.cam.altTop.toFixed(1) + '° → ' + S.cam.altBottom.toFixed(1) + '°');
+    return;
+  }
+  const f = focalFromHfov(S.hfov, S.W);
+  const cx = S.W/2, cy = S.H/2;
+  let psi = S.manPsi*DEG, pitch = S.manPitch*DEG;
+  if (!S.manual && S.hz){
+    const c = calibFromHorizon(f, cx, cy, S.hz);
+    psi = c.psi; pitch = c.pitch;
+  }
+  S.cal = { proj: 'rect', f, cx, cy, psi, pitch, azCenter: S.azCenter };
+  S.cam = makeCam(S.cal);
+  // report dans les champs manuels
+  $('pitchN').value = (pitch*R2D).toFixed(2);
+  $('psiN').value = (norm180(psi*R2D)).toFixed(2);
+  $('calReadout').innerHTML =
+    row2('focale', S.cal.f.toFixed(1) + ' px  (' + f35FromHfov(S.hfov, S.W, S.H).toFixed(1) + ' mm éq. 35)')
+  + row2('inclinaison (pitch)', (pitch*R2D).toFixed(2) + '°')
+  + row2('roulis (roll)', norm180(psi*R2D).toFixed(2) + '°')
+  + row2('azimut centre optique', S.cam.azCenter.toFixed(1) + '°');
+}
+function row2(k, v){ return '<span class="k">' + k + '</span><span class="v">' + v + '</span>'; }
+
+/* -------- calques d'affichage ------------------------------------------- */
+/** Écrit un pixel du calque ciel : voile bleu + hachures claires (visibles sur un ciel bleu). */
+function paintSkyPixel(d, j, on, x, y, per, th){
+  if (!on){ d[j+3] = 0; return; }
+  if (skyHatchOn(x, y, per, th)){ d[j] = 236; d[j+1] = 246; d[j+2] = 255; d[j+3] = 170; }
+  else { d[j] = 70; d[j+1] = 150; d[j+2] = 255; d[j+3] = 115; }
+}
+
+function buildOverlay(){
+  if (!S.ov) return;
+  const W = S.W, d = S.ovData.data, auto = S.auto, br = S.brush, n = W*S.H;
+  const per = S.ovPer = skyHatchPeriod(W), th = S.ovTh = Math.max(3, Math.round(per*0.32));
+  for (let i = 0, j = 0; i < n; i++, j += 4){
+    const b = br[i];
+    const sky = (b === 1) ? 1 : (b === 2) ? 0 : auto[i];
+    const x = i % W;
+    paintSkyPixel(d, j, sky, x, (i - x)/W, per, th);
+  }
+  S.ovCtx.putImageData(S.ovData, 0, 0);
+}
+
+/** Peint (ou gomme, val = 0) un disque de pinceau ; val = 1 ciel, 2 obstacle, 0 retour à l'automatique. */
+function paintCircle(cx, cy, r, val){
+  const W = S.W, H = S.H, d = S.ovData.data, br = S.brush, auto = S.auto;
+  const per = S.ovPer || (S.ovPer = skyHatchPeriod(W));
+  const th = S.ovTh || (S.ovTh = Math.max(3, Math.round(per*0.32)));
+  const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(W - 1, Math.ceil(cx + r));
+  const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(H - 1, Math.ceil(cy + r));
+  const r2 = r*r;
+  for (let y = y0; y <= y1; y++){
+    const dy = y - cy;
+    for (let x = x0; x <= x1; x++){
+      const dx = x - cx;
+      if (dx*dx + dy*dy > r2) continue;
+      const i = y*W + x;
+      br[i] = val;
+      const eff = (val === 1) ? 1 : (val === 2) ? 0 : (auto ? auto[i] : 0);
+      paintSkyPixel(d, i*4, eff, x, y, per, th);
+    }
+  }
+  if (x1 >= x0 && y1 >= y0) S.ovCtx.putImageData(S.ovData, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+}
+
+function drawBrushCursor(){
+  if (!S.hover) return;
+  if (S.mode === 'horizon') return;
+  if (S.mode === 'dem'){
+    const r = Math.max(6, S.W/110);
+    vctx.save();
+    vctx.beginPath();
+    vctx.moveTo(S.hover.x - r, S.hover.y); vctx.lineTo(S.hover.x + r, S.hover.y);
+    vctx.moveTo(S.hover.x, S.hover.y - r); vctx.lineTo(S.hover.x, S.hover.y + r);
+    vctx.strokeStyle = 'rgba(120,255,190,.95)'; vctx.lineWidth = Math.max(1.6, S.W/900);
+    vctx.stroke();
+    vctx.beginPath(); vctx.arc(S.hover.x, S.hover.y, r*0.6, 0, 2*Math.PI); vctx.stroke();
+    vctx.restore();
+    return;
+  }
+  vctx.save();
+  const r = S.brushSize, lw = Math.max(2.2, S.W/700);
+  const er = (S.mode === 'eraser');
+  vctx.beginPath(); vctx.arc(S.hover.x, S.hover.y, r, 0, 2*Math.PI);
+  vctx.strokeStyle = 'rgba(0,0,0,.55)'; vctx.lineWidth = lw + 2; vctx.stroke();
+  if (er) vctx.setLineDash([lw*3.5, lw*2.5]);
+  vctx.strokeStyle = er ? 'rgba(238,243,250,.98)'
+    : (S.mode === 'brushSky' ? 'rgba(130,200,255,.98)' : 'rgba(255,130,100,.98)');
+  vctx.lineWidth = lw; vctx.stroke();
+  vctx.restore();
+}
+
+function drawHorizonUI(){
+  if (!S.hz || S.manual || S.proj === 'equirect') return;
+  vctx.save();
+  vctx.strokeStyle = 'rgba(255,200,60,.95)';
+  vctx.lineWidth = Math.max(1.5, S.W/1200*2);
+  vctx.setLineDash([S.W/120, S.W/200]);
+  vctx.beginPath();
+  vctx.moveTo(S.hz.x1, S.hz.y1); vctx.lineTo(S.hz.x2, S.hz.y2);
+  vctx.stroke();
+  vctx.setLineDash([]);
+  if (S.mode === 'horizon'){
+    for (const p of [[S.hz.x1, S.hz.y1], [S.hz.x2, S.hz.y2]]){
+      vctx.beginPath(); vctx.arc(p[0], p[1], S.W/100, 0, 2*Math.PI);
+      vctx.fillStyle = 'rgba(255,200,60,.95)'; vctx.fill();
+      vctx.strokeStyle = 'rgba(0,0,0,.6)'; vctx.stroke();
+    }
+  }
+  vctx.restore();
+}
+
+/** Grille azimut / hauteur projetée sur la photo (contrôle du calibrage) */
+function drawGridOnPhoto(){
+  const cam = S.cam, W = S.W, H = S.H, m = 0.4, maxJump = W/4;
+  vctx.save();
+  vctx.lineWidth = Math.max(1, S.W/1600);
+  // isobares de hauteur
+  for (let alt = 0; alt <= 90; alt += 5){
+    vctx.strokeStyle = alt % 15 === 0 ? 'rgba(255,255,255,.42)' : 'rgba(255,255,255,.16)';
+    vctx.beginPath();
+    let on = false, px = 0;
+    for (let az = 0; az <= 360; az += 3){
+      const p = azAltToPixel(cam, az, alt);
+      if (!p || p.x < -m*W || p.x > W*(1 + m) || p.y < -m*H || p.y > H*(1 + m)
+          || (on && Math.abs(p.x - px) > maxJump)){ on = false; continue; }
+      if (!on){ vctx.moveTo(p.x, p.y); on = true; } else vctx.lineTo(p.x, p.y);
+      px = p.x;
+    }
+    vctx.stroke();
+  }
+  // isobares d'azimut
+  for (let az = 0; az < 360; az += 10){
+    vctx.strokeStyle = az % 30 === 0 ? 'rgba(255,255,255,.42)' : 'rgba(255,255,255,.16)';
+    vctx.beginPath();
+    let on = false, px = 0;
+    for (let alt = 0; alt <= 88; alt += 1){
+      const p = azAltToPixel(cam, az, alt);
+      if (!p || p.x < -m*W || p.x > W*(1 + m) || p.y < -m*H || p.y > H*(1 + m)
+          || (on && Math.abs(p.x - px) > maxJump)){ on = false; continue; }
+      if (!on){ vctx.moveTo(p.x, p.y); on = true; } else vctx.lineTo(p.x, p.y);
+      px = p.x;
+    }
+    vctx.stroke();
+  }
+  vctx.restore();
+}
+
+function drawSunPathsOnPhoto(){
+  const cam = S.cam, W = S.W, H = S.H, maxJump = W/4;
+  const y = 2025;
+  vctx.save();
+  vctx.lineWidth = Math.max(1.2, S.W/1300);
+  for (let mo = 1; mo <= 12; mo++){
+    const sol = (mo === 6 || mo === 12);
+    vctx.strokeStyle = sol ? 'rgba(255,190,60,.95)' : 'rgba(255,190,60,.35)';
+    vctx.beginPath();
+    let on = false, px = 0;
+    for (let t = 0; t <= 1440; t += 8){
+      const sp = sunPos(S.lat, S.lon, S.tz, y, mo, 21, Math.floor(t/60), t % 60);
+      if (sp.alt < 0){ on = false; continue; }
+      const p = azAltToPixel(cam, sp.az, sp.alt);
+      if (!p || p.x < -W*2 || p.x > W*3 || p.y < -H*2 || p.y > H*3
+          || (on && Math.abs(p.x - px) > maxJump)){ on = false; continue; }
+      if (!on){ vctx.moveTo(p.x, p.y); on = true; } else vctx.lineTo(p.x, p.y);
+      px = p.x;
+    }
+    vctx.stroke();
+  }
+  vctx.restore();
+}
+
+function sunAtMarker(){
+  const parts = S.date.split('-').map(Number);
+  const tp = S.time.split(':').map(Number);
+  if (parts.length !== 3 || tp.length < 2) return null;
+  const off = S.dst ? 1 : 0;
+  return sunPos(S.lat, S.lon, S.tz, parts[0], parts[1], parts[2], tp[0] - off, tp[1]);
+}
+
+function drawSunMarker(){
+  const sp = sunAtMarker(); if (!sp) return;
+  const p = azAltToPixel(S.cam, sp.az, sp.alt);
+  if (!p || p.x < 0 || p.x > S.W || p.y < 0 || p.y > S.H) return;
+  vctx.save();
+  vctx.fillStyle = 'rgba(255,225,90,.95)';
+  vctx.strokeStyle = 'rgba(0,0,0,.7)';
+  vctx.lineWidth = Math.max(1.5, S.W/900);
+  vctx.beginPath(); vctx.arc(p.x, p.y, S.W/70, 0, 2*Math.PI); vctx.fill(); vctx.stroke();
+  vctx.restore();
+}
+
+/* ==========================================================================
+   3. CHARGEMENT DE L'IMAGE
+   ========================================================================== */
+const MAXSIDE = 1600;
+
+function installImage(srcCanvasOrBitmap, w, h, name){
+  S.srcW = w; S.srcH = h; S.fileName = name || '';
+  const sc = Math.min(1, MAXSIDE/Math.max(w, h));
+  S.W = Math.max(1, Math.round(w*sc));
+  S.H = Math.max(1, Math.round(h*sc));
+  const c = document.createElement('canvas');
+  c.width = S.W; c.height = S.H;
+  const cc = c.getContext('2d', { willReadFrequently: true });
+  cc.drawImage(srcCanvasOrBitmap, 0, 0, S.W, S.H);
+  S.base = c;
+  S.imageData = cc.getImageData(0, 0, S.W, S.H);
+  S.auto = new Uint8Array(S.W*S.H);
+  S.brush = new Uint8Array(S.W*S.H);
+  S.undo = [];
+  // ligne d'horizon par défaut : centre vertical de l'image = hypothèse « appareil d'aplomb »
+  // (inclinaison 0°), cohérente avec le mode de saisie manuelle ; à ajuster sur l'horizon réel.
+  S.hz = { x1: S.W*0.08, y1: S.H*0.5, x2: S.W*0.92, y2: S.H*0.5 };
+  S.manual = false; $('manualCalib').checked = false;
+  S.grid = null;
+  const ov = document.createElement('canvas'); ov.width = S.W; ov.height = S.H;
+  S.ov = ov; S.ovCtx = ov.getContext('2d'); S.ovData = S.ovCtx.createImageData(S.W, S.H);
+  resizeView();
+  $('dropHint').classList.add('hide');
+  ['azHint', 'geoHint', 'tzHint', 'zoomHint', 'projHint', 'poseHint'].forEach((id) => { $(id).style.display = 'none'; });
+  $('exifInfo').innerHTML = '';
+  S.exif = null;
+  S.proj = 'rect'; S.azSpan = 360; S.altTop = 90; S.altBottom = -90;
+  S.reprojKey = null; S.reprojCanvas = null;
+  $('imgInfo').innerHTML = '<b>' + (name || 'image') + '</b> — ' + w + '×' + h + ' px (travail : '
+    + S.W + '×' + S.H + ')';
+  $('hdrInfo').textContent = name || '';
+  buildOverlay(); updateCam(); draw();
+  setProjection('rect', true);
+  detectSky(false);
+  computeMask();
+  logMsg('image chargée : ' + w + '×' + h);
+}
+
+async function loadFile(file){
+  try{
+    let bmp = null, w = 0, h = 0;
+    try{
+      bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      w = bmp.width; h = bmp.height;
+    }catch(e){
+      const url = URL.createObjectURL(file);
+      const im = new Image();
+      await new Promise((res, rej) => { im.onload = res; im.onerror = rej; im.src = url; });
+      bmp = im; w = im.naturalWidth; h = im.naturalHeight;
+    }
+    installImage(bmp, w, h, file.name);
+    const ex = await readExif(file);
+    applyExif(ex);
+  }catch(err){
+    logMsg('ERREUR lecture image : ' + err.message);
+    alert('Impossible de lire cette image : ' + err.message);
+  }
+}
+
+/** Injecte les métadonnées EXIF de la photo dans l'état et l'interface */
+function applyExif(ex){
+  S.exif = ex;
+  const parts = [];
+  $('zoomHint').style.display = 'none';
+  $('projHint').style.display = 'none';
+  $('poseHint').style.display = 'none';
+  const xm = ex.xmp;
+  const isEq = !!(xm && /equirect/i.test(xm.projection || ''));
+  // --- appareil / objectif ---
+  const dev = [ex.make, ex.model].filter(Boolean).join(' ').trim();
+  if (dev || ex.lens) parts.push((dev || 'appareil inconnu') + (ex.lens ? ' — ' + ex.lens : ''));
+  // --- focale ---
+  if (ex.f35){
+    S.f35 = ex.f35;
+    setHfov(hfovFromF35(ex.f35, S.W, S.H), true);
+    parts.push('focale ' + ex.f35 + ' mm éq. 35');
+    logMsg('EXIF : focale équivalente 35 mm = ' + ex.f35 + ' mm → champ ' + S.hfov.toFixed(1) + '°');
+  } else {
+    S.f35 = null; updateHfovUI();
+    logMsg('pas de focale EXIF : champ de vision à ajuster à la main');
+  }
+  // --- zoom numérique : le champ réel est plus étroit que la focale optique ---
+  if (ex.digitalZoom && ex.digitalZoom > 1.01){
+    const z = ex.digitalZoom, zh = $('zoomHint');
+    zh.style.display = 'block';
+    zh.innerHTML = 'Zoom numérique <b>×' + z.toFixed(1) + '</b> déduit de l’EXIF : le champ réel est '
+      + 'plus étroit que la focale optique. <span class="link" id="zoomFix">Réduire le champ d’autant</span>.'
+      + ' <i>Si le cadre a été recadré à la main, ne pas appliquer.</i>';
+    $('zoomFix').onclick = () => {
+      const f = Math.atan(Math.tan(S.hfov*DEG/2)/z)*2*R2D;
+      setHfov(f);
+      zh.style.display = 'none';
+      logMsg('zoom numérique ×' + z.toFixed(2) + ' appliqué → champ ' + f.toFixed(1) + '°');
+    };
+    parts.push('zoom num. ×' + z.toFixed(1));
+    logMsg('EXIF : zoom numérique ×' + z.toFixed(2) + ' — champ optique surestimé');
+  }
+  // --- position GPS ---
+  const gh = $('geoHint');
+  if (ex.lat !== null && ex.lon !== null){
+    S.lat = Math.round(ex.lat*1e5)/1e5;
+    S.lon = Math.round(ex.lon*1e5)/1e5;
+    $('latN').value = S.lat; $('lonN').value = S.lon;
+    gh.style.display = 'block';
+    gh.innerHTML = 'Coordonnées lues dans la photo (EXIF GPS)'
+      + (ex.alt !== null ? ' — altitude ' + Math.round(ex.alt) + ' m' : '')
+      + (ex.gpsAcc ? ' — précision ±' + Math.round(ex.gpsAcc) + ' m' : '')
+      + ' : <b>' + S.lat.toFixed(5) + '°, ' + S.lon.toFixed(5) + '°</b>';
+    parts.push('GPS ' + S.lat.toFixed(4) + ', ' + S.lon.toFixed(4)
+      + (ex.gpsAcc ? ' ±' + Math.round(ex.gpsAcc) + ' m' : ''));
+    logMsg('EXIF GPS : ' + S.lat.toFixed(5) + ', ' + S.lon.toFixed(5)
+      + (ex.alt !== null ? ' (altitude ' + Math.round(ex.alt) + ' m)' : '')
+      + (ex.gpsAcc ? ' (précision ±' + Math.round(ex.gpsAcc) + ' m)' : ''));
+  } else gh.style.display = 'none';
+  // --- décalage horaire (OffsetTimeOriginal si présent, sinon heure locale − heure UTC GPS) ---
+  const tzi = tzFromExif(ex), th = $('tzHint');
+  if (tzi !== null){
+    const tz = tzi.tz;
+    S.tz = tz; $('tzN').value = tz;
+    th.style.display = 'block';
+    th.innerHTML = 'Décalage horaire ' + (tzi.exact ? 'lu' : 'estimé')
+      + ' dans la photo : <b>UTC' + (tz >= 0 ? '+' : '') + tz + '</b> '
+      + (tzi.exact ? '(tag EXIF OffsetTimeOriginal)' : '(heure locale − heure UTC GPS, approximatif)')
+      + '. EnergyPlus attend l’heure <b>standard</b> : si la photo a été prise à l’heure d’été, '
+      + '<span class="link" id="tzFix">corriger vers UTC' + (tz - 1) + '</span>.';
+    $('tzFix').onclick = () => {
+      S.tz = tz - 1; $('tzN').value = S.tz;
+      S.dst = true; $('chkDst').checked = true;
+      th.style.display = 'none';
+      updateSunReadout(); draw();
+      logMsg('fuseau standard UTC' + (S.tz >= 0 ? '+' : '') + S.tz
+        + ' (affichage en heure locale d’été coché pour garder la même position du soleil)');
+    };
+    parts.push('UTC' + (tz >= 0 ? '+' : '') + tz);
+    logMsg('EXIF : décalage horaire ' + (tzi.exact ? 'lu' : 'estimé') + ' = UTC' + (tz >= 0 ? '+' : '') + tz);
+  } else th.style.display = 'none';
+  // --- XMP : photosphère (GPano), cap vrai, pose / gimbal de drone ---
+  if (xm && (isEq || xm.heading !== null || xm.pitch !== null || xm.cropped)){
+    if (isEq){
+      const c = xm.cropped;
+      if (c && (c.w !== c.fullW || c.h !== c.fullH)){
+        S.azSpan = (c.w/c.fullW)*360;
+        S.altTop = 90 - (c.top/c.fullH)*180;
+        S.altBottom = 90 - ((c.top + c.h)/c.fullH)*180;
+      } else { S.azSpan = 360; S.altTop = 90; S.altBottom = -90; }
+      setProjection('equirect', true);
+      const ph = $('projHint');
+      ph.style.display = 'block';
+      ph.innerHTML = '<b>Photosphère détectée</b> (XMP GPano : ProjectionType=equirectangular) → projection '
+        + 'équirectangulaire activée : le demi-ciel entier est couvert, l’horizon est la ligne médiane de '
+        + 'l’image, aucun calibrage n’est nécessaire.'
+        + (c && (c.w !== c.fullW || c.h !== c.fullH) ? ' Panorama recadré : étendue azimutale '
+          + S.azSpan.toFixed(0) + '°, hauteur ' + S.altTop.toFixed(0) + '° à ' + S.altBottom.toFixed(0) + '°.' : '');
+      parts.push('photosphère 360°');
+      logMsg('XMP GPano : photosphère équirectangulaire → projection adaptée automatiquement');
+    } else if (xm.pitch !== null && xm.pitch !== undefined){
+      const ps = $('poseHint');
+      ps.style.display = 'block';
+      ps.innerHTML = 'Inclinaison lue dans les métadonnées (<b>' + xm.poseSrc + '</b>) : <b>'
+        + xm.pitch.toFixed(1) + '°</b>'
+        + (xm.roll !== null && xm.roll !== undefined ? ' — roulis ' + xm.roll.toFixed(1) + '°' : '')
+        + '. <span class="link" id="poseFix">Utiliser ces valeurs</span> — à vérifier ensuite : la ligne 0° de '
+        + 'la grille doit coïncider avec l’horizon réel de la photo.';
+      $('poseFix').onclick = () => {
+        S.manual = true; $('manualCalib').checked = true;
+        S.manPitch = xm.pitch; S.manPsi = (xm.roll || 0);
+        $('pitchN').value = S.manPitch.toFixed(2); $('psiN').value = S.manPsi.toFixed(2);
+        $('manualRow').style.display = 'flex';
+        ps.style.display = 'none';
+        updateCam(); draw(); computeMaskSafe();
+        logMsg('inclinaison/roulis appliqués depuis ' + xm.poseSrc + ' (à contrôler visuellement)');
+      };
+      parts.push('inclinaison ' + xm.pitch.toFixed(0) + '° (' + (xm.poseSrc || '').split(':')[0] + ')');
+    }
+    if (xm.extended) logMsg('XMP étendu (fragments) présent dans le fichier : non exploité');
+  }
+  // --- cap : XMP (Nord vrai) prioritaire sur la boussole GPS (souvent magnétique) ---
+  const ah = $('azHint');
+  if (xm && xm.heading !== null && xm.heading !== undefined){
+    setAz(xm.heading);
+    ah.style.display = 'block';
+    ah.innerHTML = 'Cap lu dans la photo (<b>' + xm.headingSrc + '</b>) : <b>' + xm.heading.toFixed(0)
+      + '°</b> Nord <b>vrai</b> — pas de correction de déclinaison à faire. '
+      + (isEq ? 'C’est l’azimut au centre de l’image (photosphère).'
+              : 'Ce n’est l’azimut de la façade que si la photo a été prise perpendiculairement à la fenêtre.');
+    parts.push('cap ' + xm.heading.toFixed(0) + '° (vrai)');
+    logMsg('XMP : cap au Nord vrai = ' + xm.heading.toFixed(1) + '° (' + xm.headingSrc + ')');
+  } else if (ex.heading !== null && isFinite(ex.heading)){
+    setAz(ex.heading);
+    const mag = (ex.headingRef === 'M');
+    ah.style.display = 'block';
+    ah.innerHTML = 'Cap de l’appareil lu dans la photo (<b>EXIF GPSImgDirection</b>) : <b>'
+      + ex.heading.toFixed(0) + '°</b> ' + (mag ? 'magnétique' : 'vrai')
+      + '. Ce n’est l’azimut de la façade que si la photo a été prise perpendiculairement à la fenêtre.'
+      + (mag ? ' Cap magnétique : ajouter la déclinaison locale (≈ +1 à +3° en France) pour un azimut vrai.'
+            : '');
+    parts.push('cap ' + ex.heading.toFixed(0) + '°' + (mag ? ' magnétique' : ''));
+    logMsg('EXIF : cap de l’appareil = ' + ex.heading.toFixed(1) + '° (' + (mag ? 'magnétique' : 'vrai') + ')');
+  } else ah.style.display = 'none';
+  // --- date et heure de prise de vue ---
+  if (ex.date){
+    const m = /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(ex.date);
+    if (m){
+      S.date = m[1] + '-' + m[2] + '-' + m[3];
+      S.time = m[4] + ':' + m[5];
+      $('dateIn').value = S.date; $('timeIn').value = S.time;
+      parts.push('prise de vue le ' + m[3] + '/' + m[2] + '/' + m[1] + ' à ' + S.time);
+      logMsg('EXIF : prise de vue le ' + S.date + ' à ' + S.time
+        + ' — le marqueur soleil est placé à cet instant (utile pour vérifier une ombre réelle sur la photo)');
+    }
+  }
+  // --- contrôle de l'orientation (le navigateur doit l'avoir appliquée) ---
+  const orientWarn = orientNotApplied(ex.orient, ex.pxW, ex.pxH, S.srcW, S.srcH);
+  if (orientWarn) logMsg('ATTENTION : orientation EXIF ' + ex.orient + ' (photo pivotée) '
+    + 'non appliquée par le navigateur — l’image peut être couchée. Réessayez avec un navigateur à jour.');
+  // --- résumé ---
+  $('exifInfo').innerHTML = parts.length
+    ? '<b>EXIF lues :</b> ' + parts.join(' · ')
+      + (orientWarn ? ' <span class="warn">⚠ orientation EXIF non appliquée</span>' : '')
+    : 'Aucune donnée EXIF exploitable dans ce fichier (focale, GPS et cap absents) — calibrage manuel.';
+  updateSunReadout();
+  draw();
+}
+
+/** Lecture minimaliste des données EXIF utiles :
+ *  focale équivalente 35 mm, coordonnées GPS, cap de l'appareil, date de prise de vue.
+ *  Renvoie toujours un objet (champs null si absents ou illisibles). */
+async function readExif(file){
+  const out = { f35: null, focal: null, lat: null, lon: null, alt: null, gpsAcc: null,
+                heading: null, headingRef: null, date: null, offset: null, utc: null,
+                make: null, model: null, lens: null, digitalZoom: null,
+                orient: null, pxW: null, pxH: null, err: null };
+  try{
+    const buf = await file.slice(0, 512*1024).arrayBuffer();
+    const dv = new DataView(buf);
+    if (dv.byteLength < 16 || dv.getUint16(0) !== 0xFFD8) return out;
+    let off = 2, tiff = -1;
+    while (off + 4 <= dv.byteLength){
+      if (dv.getUint8(off) !== 0xFF){ off++; continue; }
+      const marker = dv.getUint8(off + 1);
+      if (marker === 0xD8 || marker === 0x01 || (marker >= 0xD0 && marker <= 0xD7)){ off += 2; continue; }
+      if (marker === 0xDA || marker === 0xD9) break;
+      const len = dv.getUint16(off + 2);
+      if (marker === 0xE1 && len >= 10 &&
+          dv.getUint32(off + 4) === 0x45786966 && dv.getUint16(off + 8) === 0){
+        tiff = off + 10; break;
+      }
+      if (len < 2) break;
+      off += 2 + len;
+    }
+    if (tiff < 0) return out;
+    const le = dv.getUint16(tiff) === 0x4949;
+    if (dv.getUint16(tiff + 2, le) !== 0x002A) return out;
+    const ifd0 = readIFD(dv, tiff, tiff + dv.getUint32(tiff + 4, le), le);
+    const ex = ifd0[0x8769] ? readIFD(dv, tiff, tiff + ifd0[0x8769].v[0], le) : {};
+    const gps = ifd0[0x8825] ? readIFD(dv, tiff, tiff + ifd0[0x8825].v[0], le) : {};
+    // valeurs : on cherche dans l'ExifIFD puis dans l'IFD0 (les appareils ne rangent pas
+    // toujours les tags au même endroit : Make/Model/Orientation sont normalement en IFD0)
+    const val = (tag) => ex[tag] || ifd0[tag] || null;
+    const t35 = val(0xA405); if (t35 && t35.v[0]) out.f35 = t35.v[0];
+    const tfl = val(0x920A); if (tfl) out.focal = tfl.v[0];
+    const tdt = val(0x9003); if (tdt && tdt.s) out.date = tdt.s;      // "AAAA:MM:JJ HH:MM:SS" (local)
+    const tmk = val(0x010F); if (tmk && tmk.s) out.make = tmk.s;
+    const tmd = val(0x0110); if (tmd && tmd.s) out.model = tmd.s;
+    const tln = val(0xA434); if (tln && tln.s) out.lens = tln.s;     // objectif utilisé
+    const tdz = val(0xA404); if (tdz && tdz.v[0] > 0) out.digitalZoom = tdz.v[0];
+    const tor = val(0x0112); if (tor) out.orient = tor.v[0];         // orientation déclarée
+    const tpw = val(0xA002); if (tpw) out.pxW = tpw.v[0];
+    const tph = val(0xA003); if (tph) out.pxH = tph.v[0];
+    // décalage horaire explicite (EXIF 2.31) : prioritaire sur toute déduction
+    out.offset = asciiToOffset((val(0x9011) || {}).s)
+              ?? asciiToOffset((val(0x9010) || {}).s)
+              ?? asciiToOffset((val(0x9012) || {}).s);
+    if (gps[0x0002] && gps[0x0004] && gps[0x0002].v.length >= 3 && gps[0x0004].v.length >= 3){
+      const la = gps[0x0002].v, lo = gps[0x0004].v;
+      out.lat = la[0] + la[1]/60 + la[2]/3600;
+      out.lon = lo[0] + lo[1]/60 + lo[2]/3600;
+      if (gps[0x0001] && gps[0x0001].s === 'S') out.lat = -out.lat;
+      if (gps[0x0003] && gps[0x0003].s === 'W') out.lon = -out.lon;
+    }
+    if (gps[0x0006] && gps[0x0006].v.length){
+      out.alt = gps[0x0006].v[0] * ((gps[0x0005] && gps[0x0005].v[0]) ? -1 : 1);
+    }
+    if (gps[0x0011] && gps[0x0011].v.length){                   // cap de l'appareil (boussole)
+      out.heading = gps[0x0011].v[0];
+      out.headingRef = (gps[0x0010] && gps[0x0010].s) || 'T';   // 'T' vrai, 'M' magnétique
+    }
+    if (gps[0x001F]) out.gpsAcc = gps[0x001F].v[0];             // précision horizontale (m)
+    out.xmp = readXmp(dv);                                       // photosphère, cap vrai, pose, gimbal
+    if (gps[0x001D] && gps[0x0007] && gps[0x0007].v.length >= 3){ // date + heure UTC de la prise de vue
+      const t = gps[0x0007].v;
+      const p2 = (x) => String(Math.round(x)).padStart(2, '0');
+      out.utc = gps[0x001D].s.replace(/:/g, '-') + 'T' + p2(t[0]) + ':' + p2(t[1]) + ':' + p2(t[2]) + 'Z';
+    }
+  }catch(e){ out.err = e.message; }
+  return out;
+}
+
+/** Octets -> texte UTF-8 (lecture des segments XML/XMP) */
+function bytesToStr(dv, start, len){
+  const n = Math.max(0, Math.min(len, dv.byteLength - start));
+  const u8 = new Uint8Array(dv.buffer, dv.byteOffset + start, n);
+  try{ return new TextDecoder('utf-8', { fatal: false }).decode(u8); }
+  catch(e){
+    let s = '';
+    for (let i = 0; i < n; i++) s += String.fromCharCode(u8[i]);
+    return s;
+  }
+}
+
+/** Lecture du paquet XMP (segment APP1 « http://ns.adobe.com/xap/1.0/ ») :
+ *  photosphère (GPano), cap vrai, pose, gimbal de drone. */
+function readXmp(dv){
+  const res = { text: null, extended: false, projection: null,
+                heading: null, headingSrc: null, pitch: null, roll: null, poseSrc: null,
+                cropped: null };
+  try{
+    const HDR = 'http://ns.adobe.com/xap/1.0/';
+    const HDRX = 'http://ns.adobe.com/xmp/extension/';
+    let off = 2, xml = null;
+    while (off + 4 <= dv.byteLength){
+      if (dv.getUint8(off) !== 0xFF){ off++; continue; }
+      const marker = dv.getUint8(off + 1);
+      if (marker === 0xD8 || marker === 0x01 || (marker >= 0xD0 && marker <= 0xD7)){ off += 2; continue; }
+      if (marker === 0xDA || marker === 0xD9) break;
+      const len = dv.getUint16(off + 2);
+      if (marker === 0xE1 && len > HDR.length + 4){
+        const head = bytesToStr(dv, off + 4, Math.min(len - 2, HDRX.length + 2));
+        if (head.indexOf(HDR) === 0 && !xml){
+          xml = bytesToStr(dv, off + 4 + HDR.length + 1, len - 2 - HDR.length - 1);
+        } else if (head.indexOf(HDRX) === 0){
+          res.extended = true;                    // XMP étendu (fragments) : non exploité
+        }
+      }
+      if (len < 2) break;
+      off += 2 + len;
+    }
+    if (!xml) return res;
+    const txt = xml;
+    res.text = txt;
+    res.projection = xmpStr(txt, 'ProjectionType');
+    // cap : GPano (photosphère) puis DJI (gimbal), tous deux au Nord VRAI
+    const h = xmpNum(txt, 'PoseHeadingDegrees');
+    if (h !== null){ res.heading = h; res.headingSrc = 'GPano:PoseHeadingDegrees'; }
+    const gy = xmpNum(txt, 'GimbalYawDegree');
+    if (gy !== null && res.heading === null){ res.heading = gy; res.headingSrc = 'drone-dji:GimbalYawDegree'; }
+    // inclinaison / roulis (0 = horizon ; négatif = vers le bas chez DJI)
+    const p = xmpNum(txt, 'PosePitchDegrees'), r = xmpNum(txt, 'PoseRollDegrees');
+    if (p !== null){ res.pitch = p; res.poseSrc = 'GPano:PosePitchDegrees'; }
+    if (r !== null){ res.roll = r; res.poseSrc = res.poseSrc || 'GPano:PoseRollDegrees'; }
+    const gp = xmpNum(txt, 'GimbalPitchDegree'), gr = xmpNum(txt, 'GimbalRollDegree');
+    if (gp !== null){ res.pitch = gp; res.poseSrc = 'drone-dji:GimbalPitchDegree'; }
+    if (gr !== null){ res.roll = gr; res.poseSrc = res.poseSrc || 'drone-dji:GimbalRollDegree'; }
+    // zone utile d'une photosphère recadrée (sinon panorama complet)
+    const fw = xmpNum(txt, 'FullPanoWidthPixels'), fh = xmpNum(txt, 'FullPanoHeightPixels');
+    if (fw && fh){
+      res.cropped = { fullW: fw, fullH: fh,
+        left: xmpNum(txt, 'CroppedAreaLeftPixels') || 0,
+        top: xmpNum(txt, 'CroppedAreaTopPixels') || 0,
+        w: xmpNum(txt, 'CroppedAreaImageWidthPixels') || fw,
+        h: xmpNum(txt, 'CroppedAreaImageHeightPixels') || fh };
+    }
+  }catch(e){ /* XMP illisible : ignoré */ }
+  return res;
+}
+
+/** Élément IFD : valeurs numériques (v) ou chaîne ASCII (s) */
+function readIFD(dv, tiff, off, le){
+  const out = {};
+  try{
+    const n = dv.getUint16(off, le);
+    for (let i = 0; i < n; i++){
+      const e = off + 2 + i*12;
+      const tag = dv.getUint16(e, le);
+      const type = dv.getUint16(e + 2, le);
+      const cnt = dv.getUint32(e + 4, le);
+      const size = ({ 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 7: 1, 9: 4, 10: 8 })[type] || 1;
+      const total = size*cnt;
+      if (total <= 0 || total > 1e6) continue;
+      const base = (total <= 4) ? (e + 8) : (tiff + dv.getUint32(e + 8, le));
+      if (base < 0 || base + total > dv.byteLength) continue;
+      if (type === 2){                                          // ASCII
+        let s = '';
+        for (let k = 0; k < cnt; k++){
+          const c = dv.getUint8(base + k);
+          if (c === 0) break;
+          s += String.fromCharCode(c);
+        }
+        out[tag] = { v: [s], s };
+      } else {
+        const v = [];
+        for (let k = 0; k < cnt && k < 16; k++){
+          const p = base + k*size;
+          let x = 0;
+          switch (type){
+            case 1: case 7: x = dv.getUint8(p); break;
+            case 3: x = dv.getUint16(p, le); break;
+            case 4: case 9: x = dv.getUint32(p, le); break;
+            case 5: x = dv.getUint32(p, le) / (dv.getUint32(p + 4, le) || 1); break;
+            case 10: x = dv.getInt32(p, le) / (dv.getInt32(p + 4, le) || 1); break;
+          }
+          v.push(x);
+        }
+        out[tag] = { v, s: null };
+      }
+    }
+  }catch(e){ /* IFD illisible : ignoré */ }
+  return out;
+}
+
+/** Image de démonstration (scène synthétique : immeuble, arbre, mât) */
+function makeDemo(){
+  const W = 1280, H = 800, hz = 560;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, hz);
+  grad.addColorStop(0, '#2f6fbf'); grad.addColorStop(0.65, '#8fc0ea'); grad.addColorStop(1, '#e2ecf3');
+  g.fillStyle = grad; g.fillRect(0, 0, W, hz);
+  // nuages
+  g.fillStyle = 'rgba(255,255,255,.85)';
+  g.beginPath(); g.ellipse(420, 120, 95, 34, 0, 0, 7); g.ellipse(490, 108, 70, 26, 0, 0, 7); g.fill();
+  g.fillStyle = 'rgba(215,222,230,.9)';
+  g.beginPath(); g.ellipse(900, 190, 120, 30, 0, 0, 7); g.fill();
+  // sol
+  const gg = g.createLinearGradient(0, hz, 0, H);
+  gg.addColorStop(0, '#6e6a5e'); gg.addColorStop(1, '#3b382f');
+  g.fillStyle = gg; g.fillRect(0, hz, W, H - hz);
+  // immeuble
+  g.fillStyle = '#8d8477'; g.fillRect(60, 250, 310, hz - 250);
+  g.fillStyle = '#5b5348'; g.fillRect(48, 238, 334, 16);
+  g.fillStyle = '#4c5a66';
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 5; j++) g.fillRect(88 + i*70, 280 + j*55, 42, 34);
+  // mât / antenne
+  g.fillStyle = '#3a3f45'; g.fillRect(985, 150, 5, hz - 150);
+  // arbre
+  g.fillStyle = '#6b4f33'; g.fillRect(1085, 470, 26, hz - 470);
+  g.fillStyle = '#3f5b2f';
+  g.beginPath(); g.ellipse(1098, 420, 155, 145, 0, 0, 7); g.fill();
+  g.fillStyle = '#46663a';
+  g.beginPath(); g.ellipse(1195, 500, 120, 105, 0, 0, 7); g.ellipse(1010, 505, 95, 85, 0, 0, 7); g.fill();
+  // fenêtre : encadrement (simule la prise de vue depuis l'intérieur)
+  g.strokeStyle = '#dcdcd6'; g.lineWidth = 34; g.strokeRect(17, 17, W - 34, H - 34);
+  return c;
+}
+
+/* ==========================================================================
+   4. DÉTECTION AUTOMATIQUE DU CIEL
+   ========================================================================== */
+let detectTimer = null;
+function scheduleDetect(){
+  if (detectTimer) clearTimeout(detectTimer);
+  detectTimer = setTimeout(() => detectSky(true), 140);
+}
+
+function detectSky(rebuild){
+  if (!S.imageData) return;
+  const t0 = performance.now();
+  const W = S.W, H = S.H, n = W*H;
+  const px = S.imageData.data;
+  const score = new Float32Array(n);
+  for (let i = 0; i < n; i++){
+    const j = i*4, r = px[j], g = px[j+1], b = px[j+2];
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    const br = (r + g + b)/765;
+    const sat = mx ? (mx - mn)/mx : 0;
+    const blue = (b - Math.max(r, g))/255;
+    score[i] = Math.max(blue*2.2, (br - 0.5)*2.0 - sat*1.6);
+  }
+  const t = S.threshold/100, tHi = t, tLo = t*0.55;
+  // bordure d'image exclue (cadre de fenêtre, montants) : comptée comme obstacle
+  if (S.border > 0){
+    const bx = Math.max(1, Math.round(S.W*S.border/100));
+    const by = Math.max(1, Math.round(S.H*S.border/100));
+    for (let y = 0; y < H; y++){
+      const inRow = (y < by || y >= H - by);
+      for (let x = 0; x < W; x++){
+        if (inRow || x < bx || x >= W - bx) score[y*W + x] = -1;
+      }
+    }
+  }
+  const auto = S.auto;
+  auto.fill(0);
+  const brush = S.brush;
+  if (!S.flood){
+    for (let i = 0; i < n; i++) if (score[i] > tHi && brush[i] !== 2) auto[i] = 1;
+  } else {
+    const seen = new Uint8Array(n);
+    const stack = new Int32Array(n);
+    let sp = 0;
+    // germination : bande supérieure de l'image (sous la bordure exclue)
+    const bx = S.border > 0 ? Math.max(1, Math.round(W*S.border/100)) : 0;
+    const by = S.border > 0 ? Math.max(1, Math.round(H*S.border/100)) : 0;
+    const ySeed = Math.min(H - by, by + Math.max(10, Math.round(H*0.18)));
+    for (let y = by; y < ySeed; y++){
+      for (let x = bx; x < W - bx; x++){
+        const i = y*W + x;
+        if (score[i] > tHi && brush[i] !== 2 && !seen[i]){ seen[i] = 1; stack[sp++] = i; }
+      }
+    }
+    for (let i = 0; i < n; i++){
+      if (brush[i] === 1 && !seen[i]){ seen[i] = 1; stack[sp++] = i; }
+    }
+    while (sp > 0){
+      const i = stack[--sp];
+      auto[i] = 1;
+      const x = i % W, y = (i - x)/W;
+      if (x > 0){ const k = i - 1; if (!seen[k] && brush[k] !== 2 && score[k] > tLo){ seen[k] = 1; stack[sp++] = k; } }
+      if (x < W - 1){ const k = i + 1; if (!seen[k] && brush[k] !== 2 && score[k] > tLo){ seen[k] = 1; stack[sp++] = k; } }
+      if (y > 0){ const k = i - W; if (!seen[k] && brush[k] !== 2 && score[k] > tLo){ seen[k] = 1; stack[sp++] = k; } }
+      if (y < H - 1){ const k = i + W; if (!seen[k] && brush[k] !== 2 && score[k] > tLo){ seen[k] = 1; stack[sp++] = k; } }
+    }
+  }
+  S.brush.forEach((b, i) => { if (b === 1) auto[i] = 1; });
+  buildOverlay();
+  if (rebuild){ computeMask(); }
+  setStatus();
+  draw();
+  logMsg('détection du ciel : ' + (performance.now() - t0).toFixed(0) + ' ms (seuil '
+    + S.threshold + ' %' + (S.flood ? ', connexité au haut' : ', seuil global') + ')');
+}
+
+/* ==========================================================================
+   5. CALCUL DU MASQUE
+   ========================================================================== */
+function computeMask(){
+  if (!S.base || !S.cam) return;
+  const t0 = performance.now();
+  const W = S.W, H = S.H, n = W*H;
+  const azStep = S.azStep, altStep = S.altStep;
+  const naz = Math.round(360/azStep), nalt = Math.round(90/altStep) + 1;
+  const count = new Uint32Array(naz*nalt);
+  const sky = new Uint32Array(naz*nalt);
+  const auto = S.auto, brush = S.brush;
+  const step = (W*H > 900000) ? 2 : 1;
+  const cam = S.cam;
+  for (let y = 0; y < H; y += step){
+    for (let x = 0; x < W; x += step){
+      const i = y*W + x;
+      const b = brush[i];
+      const isSky = (b === 1) ? 1 : (b === 2) ? 0 : auto[i];
+      const d = pixelToAzAlt(cam, x + 0.5, y + 0.5);
+      if (d.alt < 0) continue;
+      const ia = Math.round(d.az/azStep) % naz;
+      const il = Math.min(nalt - 1, Math.round(d.alt/altStep));
+      const c = il*naz + ia;
+      count[c]++; if (isSky) sky[c]++;
+    }
+  }
+  const openness = new Float32Array(naz*nalt);
+  const covered = new Uint8Array(naz*nalt);
+  for (let i = 0; i < naz*nalt; i++){
+    if (count[i] > 0){ covered[i] = 1; openness[i] = sky[i]/count[i]; }
+    else openness[i] = S.uncovered;
+  }
+  // métriques
+  let omegaAll = 0, omegaCov = 0, sumOpenCov = 0, sumOpenEst = 0;
+  for (let il = 0; il < nalt; il++){
+    const a0 = (il === 0) ? 0 : il*altStep - altStep/2;
+    const a1 = Math.min(90, il*altStep + altStep/2);
+    const dO = (Math.sin(a1*DEG) - Math.sin(a0*DEG)) * azStep*DEG;
+    for (let ia = 0; ia < naz; ia++){
+      const i = il*naz + ia;
+      omegaAll += dO;
+      if (covered[i]){ omegaCov += dO; sumOpenCov += openness[i]*dO; sumOpenEst += openness[i]*dO; }
+      else sumOpenEst += S.uncovered*dO;
+    }
+  }
+  const metrics = {
+    coverage: omegaAll ? omegaCov/omegaAll : 0,
+    svfCov: omegaCov ? sumOpenCov/omegaCov : 0,
+    svfEst: omegaAll ? sumOpenEst/omegaAll : 0,
+    cellsCovered: covered.reduce((a, b) => a + b, 0),
+    cellsTotal: naz*nalt,
+    omegaCov, omegaAll, step,
+  };
+  S.grid = { azStep, altStep, naz, nalt, openness, covered, count, metrics, date: new Date() };
+  updateMonthly();
+  updateCam();
+  drawChart();
+  updateMaskUI();
+  setStatus();
+  draw();
+  logMsg('masque ' + naz + '×' + nalt + ' calculé en ' + (performance.now() - t0).toFixed(0) + ' ms (échantillonnage 1/' + step + ')');
+}
+
+function updateMaskUI(){
+  const m = S.grid ? S.grid.metrics : null;
+  const el = $('maskReadout');
+  if (!m){ el.innerHTML = '<span class="k">masque</span><span class="v">à calculer</span>'; return; }
+  el.innerHTML =
+    row2('part du demi-ciel couverte par la photo', (m.coverage*100).toFixed(1) + ' %  ('
+      + m.cellsCovered + '/' + m.cellsTotal + ' cellules)')
+  + row2('facteur de vue du ciel — zone couverte', (m.svfCov*100).toFixed(1) + ' %')
+  + row2('facteur de vue du ciel — demi-ciel complet (estimé)', (m.svfEst*100).toFixed(1) + ' %')
+  + row2('directions hors photo', (S.uncovered*100).toFixed(0) + ' % d’ouverture supposée');
+}
+
+/* ==========================================================================
+   5bis. RELIEF (MNT IGN) — profil de silhouette et calage assisté (P1 + P2)
+   Source unique : service altimétrique de l'IGN (data.geopf.fr), appelé
+   uniquement sur action explicite de l'utilisateur.
+   ========================================================================== */
+const DEM_URL = 'https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json';
+const DEM_RESOURCE = 'ign_rge_alti_wld';
+
+async function demFetch(){
+  if (!S.base) return alert('Chargez d’abord une photo (position GPS nécessaire).');
+  if (!S.dem.enabled){
+    const ok = confirm('Calculer la silhouette du relief à partir de vos coordonnées ?\n\n'
+      + 'Position envoyée au service altimétrique de l’IGN (data.geopf.fr) :\n'
+      + S.lat.toFixed(5) + '°, ' + S.lon.toFixed(5) + '°\n'
+      + 'Aucune autre donnée (ni la photo) ne quitte votre machine.');
+    if (!ok) return;
+    S.dem.enabled = true;
+  }
+  const step = S.dem.step, nRad = S.dem.nRad, dMin = 30, dMax = 25000;
+  const latr = S.lat*DEG;
+  const lon0 = S.lon, lat0 = S.lat;
+  const lons = [lon0], lats = [lat0];
+  const dists = [];
+  for (let i = 0; i < nRad; i++) dists.push(dMin*Math.pow(dMax/dMin, i/(nRad - 1)));
+  const azList = [];
+  for (let az = 0; az < 360; az += step){
+    azList.push(az);
+    for (const d of dists){
+      lons.push((lon0 + d*Math.sin(az*DEG)/(111320*Math.cos(latr))).toFixed(7));
+      lats.push((lat0 + d*Math.cos(az*DEG)/111320).toFixed(7));
+    }
+  }
+  $('demStatus').innerHTML = '<span class="warn">appel IGN en cours…</span>';
+  const t0 = performance.now();
+  let elev;
+  const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  const timer = ctl ? setTimeout(() => ctl.abort(), 25000) : null;
+  try{
+    const r = await fetch(DEM_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lon: lons.join('|'), lat: lats.join('|'),
+        resource: DEM_RESOURCE, zonly: 'true' }),
+      signal: ctl ? ctl.signal : undefined });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    elev = j.elevations || j.elevation;
+    if (!elev || !elev.length) throw new Error('réponse vide');
+  }catch(e){
+    const msg = (e && e.name === 'AbortError') ? 'délai dépassé (25 s)' : e.message;
+    $('demStatus').innerHTML = '<span class="err">échec de l’appel IGN : ' + msg
+      + ' (hors ligne ?)</span>';
+    logMsg('MNT : échec de l’appel IGN — ' + msg);
+    return;
+  }finally{
+    if (timer) clearTimeout(timer);
+  }
+  const zSol = elev[0];
+  const zCam = zSol + S.dem.hCam;
+  const az = [], alt = [], dist = [];
+  let k = 1;
+  for (const a of azList){
+    const zs = elev.slice(k, k + nRad); k += nRad;
+    const sk = demSkylineFromSamples(dists, zs, zCam);
+    az.push(a); alt.push(+sk.alt.toFixed(3)); dist.push(Math.round(sk.dist));
+  }
+  S.dem.profile = { az, alt, dist, zSol, zCam, lat: lat0, lon: lon0, step,
+                    fetched: new Date().toISOString(), nPoints: elev.length };
+  S.dem.points = [];            // un nouveau profil invalide les repères et l'ajustement
+  S.dem.fit = null;
+  demUI();
+  draw(); drawChart();
+  const far = alt.map((v, i) => ({ v, i })).sort((p, q) => q.v - p.v).slice(0, 3)
+    .map((o) => az[o.i] + '° ' + alt[o.i].toFixed(1) + '° (' + (dist[o.i]/1000).toFixed(1) + ' km)');
+  logMsg('MNT : ' + elev.length + ' points en ' + ((performance.now() - t0)/1000).toFixed(1) + ' s ; sol '
+    + zSol.toFixed(1) + ' m ; caméra ' + zCam.toFixed(1) + ' m ; crêtes principales : ' + far.join(', '));
+}
+
+/** Interface + lecture du profil */
+function demUI(base){
+  const d = S.dem, p = d.profile;
+  $('demStatus').innerHTML = p
+    ? '<span class="ok">profil MNT : ' + p.az.length + ' azimuts × ' + d.nRad + ' échantillons ('
+      + p.nPoints + ' points)</span>'
+    : '<span class="mut">aucun profil chargé</span>';
+  const el = $('demReadout');
+  const hHtml = row2('sol au MNT IGN (NGF-IGN69)', p ? p.zSol.toFixed(1) + ' m' : '–')
+    + row2('hauteur de prise de vue', '+ ' + d.hCam.toFixed(1) + ' m au-dessus du sol')
+    + row2('altitude caméra retenue', p ? p.zCam.toFixed(1) + ' m (NGF)' : '–');
+  let gHtml = '';
+  if (S.exif && S.exif.alt !== null && S.exif.alt !== undefined && p){
+    const ecart = S.exif.alt - p.zSol;
+    gHtml = row2('altitude EXIF (non utilisée)', S.exif.alt.toFixed(1) + ' m — écart '
+      + ecart.toFixed(0) + ' m <span class="mut">(ellipsoïdale ; écart géoïdal)</span>');
+  }
+  el.innerHTML = hHtml + gHtml;
+  const f = d.fit;
+  if (f){
+    const bad = f.singular || (f.sigPitch !== null && f.sigPitch > 0.5)
+      || (f.solvedAz && f.sigAz !== null && f.sigAz > 2);
+    const sig = (x) => (x === null) ? '–' : ('±' + x + '°');
+    $('demFit').innerHTML =
+      row2('inclinaison ajustée', f.pitch.toFixed(2) + '°')
+    + row2('roulis ajusté', f.roll.toFixed(2) + '°')
+    + (f.solvedAz ? row2('azimut ajusté', f.azCenter.toFixed(2) + '°') : '')
+    + row2('repères retenus', f.n + (f.rejected ? ' (' + f.rejected + ' écarté(s))' : ''))
+    + row2('distance moyenne des crêtes', (f.meanDist/1000).toFixed(1) + ' km')
+    + row2('résidu RMS', f.rms.toFixed(2) + '°'
+        + (f.rms < 0.4 ? ' <span class="ok">bon</span>' : f.rms < 1 ? ' <span class="warn">moyen</span>'
+          : ' <span class="err">faible</span>'))
+    + (f.dof > 0 && !f.singular
+      ? row2('incertitudes', sig(f.sigPitch) + ' incl. · ' + sig(f.sigRoll) + ' roulis'
+          + (f.solvedAz ? ' · ' + sig(f.sigAz) + ' azimut' : ''))
+      : row2('incertitudes', '<span class="warn">non estimables — ajoutez un repère</span>'))
+    + (bad ? '<span class="warn">calage mal conditionné : étalez les repères en azimut</span>' : '');
+  } else {
+    $('demFit').innerHTML = '<span class="k">calage</span><span class="v">placez 2 à 3 repères puis ajustez</span>';
+  }
+  $('btnDemFit').disabled = !(p && S.dem.points.length >= 2);
+  $('btnDemClear').disabled = !S.dem.points.length;
+  $('btnDemApply').disabled = !f;
+  $('demCount').textContent = S.dem.points.length ? (S.dem.points.length + ' repère(s) placé(s)') : '';
+}
+
+/** Tracé de la silhouette MNT sur la photo.
+ *  Les deux parties (lointaine et proche) sont tracées avec un liseré sombre : la silhouette doit
+ *  rester lisible aussi bien sur un ciel clair que sur un fond sombre (feuillage, toitures). */
+function drawDemOnPhoto(){
+  const p = S.dem.profile;
+  if (!p || !S.dem.show || !S.cam) return;
+  vctx.save();
+  vctx.lineJoin = 'round';
+  const dash = [Math.max(9, Math.round(S.W/150)), Math.max(7, Math.round(S.W/200))];
+  for (const far of [false, true]){
+    vctx.beginPath();
+    let on = false, px = 0;
+    for (let az2 = 0; az2 <= 360; az2 += 0.5){
+      const sk = demInterp(p, az2);
+      if (!sk) continue;
+      const isFar = sk.dist > 1500;
+      if (isFar !== far){ on = false; continue; }
+      const q = azAltToPixel(S.cam, az2, sk.alt);
+      if (!q || q.x < -S.W*0.5 || q.x > S.W*1.5 || q.y < -S.H*0.5 || q.y > S.H*1.5
+          || (on && Math.abs(q.x - px) > S.W/4)){ on = false; continue; }
+      if (!on){ vctx.moveTo(q.x, q.y); on = true; } else vctx.lineTo(q.x, q.y);
+      px = q.x;
+    }
+    const lw = far ? Math.max(2.2, S.W/650) : Math.max(1.8, S.W/850);
+    vctx.setLineDash(far ? [] : dash);
+    vctx.lineWidth = lw + Math.max(2.4, S.W/700);
+    vctx.strokeStyle = 'rgba(0,0,0,.55)';
+    vctx.stroke();
+    vctx.lineWidth = lw;
+    vctx.strokeStyle = far ? 'rgba(150,255,196,.97)' : 'rgba(190,255,220,.95)';
+    vctx.stroke();
+  }
+  vctx.setLineDash([]);
+  // repères posés
+  for (const c of S.dem.points){
+    vctx.beginPath(); vctx.arc(c.x, c.y, Math.max(4, S.W/200), 0, 7);
+    vctx.strokeStyle = 'rgba(255,255,255,.95)'; vctx.lineWidth = Math.max(1.6, S.W/900); vctx.stroke();
+    vctx.beginPath(); vctx.arc(c.x, c.y, Math.max(2, S.W/400), 0, 7);
+    vctx.fillStyle = 'rgba(120,255,190,.95)'; vctx.fill();
+  }
+  vctx.restore();
+}
+
+/** Tracé de la silhouette MNT sur le diagramme */
+function drawDemOnChart(X, Y){
+  const p = S.dem.profile;
+  if (!p || !S.dem.show) return;
+  cctx.save();
+  cctx.beginPath();
+  let started = false;
+  for (let az2 = 0; az2 <= 360; az2 += 1){
+    const sk = demInterp(p, az2);
+    if (!sk) continue;
+    const x = X(az2), y = Y(Math.max(0, sk.alt));
+    if (!started){ cctx.moveTo(x, y); started = true; } else cctx.lineTo(x, y);
+  }
+  cctx.strokeStyle = 'rgba(120,255,190,.95)';
+  cctx.lineWidth = 1.6;
+  cctx.stroke();
+  cctx.restore();
+}
+
+/** Ajustement à partir des repères cliqués */
+function demFitPose(){
+  const p = S.dem.profile;
+  if (!p){ alert('Calculez d’abord la silhouette MNT.'); return; }
+  const clicks = S.dem.points.map((c, i) => ({ x: c.x, y: c.y, i }));
+  const base = { f: S.cal.f, cx: S.cal.cx, cy: S.cal.cy,
+                 pitchDeg: S.cam.pitchDeg, rollDeg: S.cam.rollDeg, azCenter: S.cam.azCenter };
+  // azimut ajustable seulement sur demande, avec assez de repères bien étalés
+  const azs = clicks.map((c) => pixelToAzAlt(S.cam, c.x, c.y).az).sort((a, b) => a - b);
+  const spread = (azs.length >= 2) ? Math.abs(((azs[azs.length - 1] - azs[0] + 540) % 360) - 180) : 0;
+  const solveAz = $('demSolveAz').checked && clicks.length >= 4 && spread > 30;
+  const res = fitPoseToSkyline(p, clicks, base, { solveAz });
+  if (res.err){ alert(res.err); return; }
+  res.solvedAz = solveAz;
+  S.dem.fit = res;
+  demUI(S.cam);
+  drawChart(); draw();
+  logMsg('calage MNT : inclinaison ' + res.pitch.toFixed(2) + '° , roulis ' + res.roll.toFixed(2)
+    + '°' + (solveAz ? ', azimut ' + res.azCenter.toFixed(2) + '°' : '') + ' — résidu RMS '
+    + res.rms.toFixed(2) + '° sur ' + res.n + ' repères'
+    + (spread <= 30 && !solveAz ? ' (repères trop groupés en azimut : azimut non ajustable)' : ''));
+}
+
+/** Application du calage au modèle caméra (sur validation) */
+function demApply(){
+  const f = S.dem.fit;
+  if (!f) return;
+  S.manual = true; $('manualCalib').checked = true;
+  S.manPitch = f.pitch; S.manPsi = f.roll;
+  $('pitchN').value = f.pitch.toFixed(2); $('psiN').value = f.roll.toFixed(2);
+  $('manualRow').style.display = 'flex';
+  if (f.solvedAz) setAz(f.azCenter);
+  updateCam(); draw(); computeMaskSafe(); drawChart();
+  logMsg('calage MNT appliqué au modèle caméra (inclinaison ' + f.pitch.toFixed(2)
+    + '°, roulis ' + f.roll.toFixed(2) + '°)');
+}
+
+/* ==========================================================================
+   6. OMBRAGE HORAIRE (série annuelle)
+   ========================================================================== */
+function computeHourly(){
+  if (!S.grid) return null;
+  const leap = $('chkLeap').checked;
+  const year = leap ? 2024 : 2025;
+  const N = leap ? 8784 : 8760;
+  const out = new Array(N);
+  const monthly = [];
+  for (let m = 0; m < 12; m++) monthly.push({ nSun: 0, sumOpen: 0, sunOpen: 0, fullSun: 0 });
+  for (let i = 0; i < N; i++){
+    const doy = Math.floor(i/24) + 1, hh = i % 24;
+    const dm = dateFromDoy(year, doy);
+    const sp = sunPos(S.lat, S.lon, S.tz, year, dm.m, dm.d, hh, 30);
+    let v = 1;
+    if (sp.alt > 0) v = sampleGrid(S.grid, sp.az, sp.alt);
+    out[i] = { doy, m: dm.m, d: dm.d, hour: hh, az: sp.az, alt: sp.alt, open: v };
+    const mo = monthly[dm.m - 1];
+    if (sp.alt > 0){
+      mo.nSun++; mo.sunOpen += v; if (v > 0.98) mo.fullSun++;
+      mo.sumOpen += v;
+    }
+  }
+  S.hourly = out;
+  S.monthly = monthly;
+  // tableau récapitulatif
+  let html = '<table><tr><th>mois</th><th>h de soleil</th><th>h non masquées</th>'
+    + '<th>ouverture moy. (h de soleil)</th></tr>';
+  const names = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+  for (let m = 0; m < 12; m++){
+    const mo = monthly[m];
+    html += '<tr><td>' + names[m] + '</td><td>' + mo.nSun + '</td><td>' + mo.fullSun + '</td><td>'
+      + (mo.nSun ? (mo.sunOpen/mo.nSun*100).toFixed(1) : '–') + ' %</td></tr>';
+  }
+  html += '</table>';
+  $('monthBox').innerHTML = html;
+  return out;
+}
+function updateMonthly(){
+  try{ computeHourly(); }catch(e){ logMsg('calcul horaire : ' + e.message); }
+}
+
+/* ==========================================================================
+   7. DIAGRAMME DU MASQUE
+   ========================================================================== */
+/** Photo « dépliée » dans le plan azimut × hauteur (pour le diagramme).
+ *  Chaque pixel du diagramme reçoit la couleur de la direction correspondante de la photo.
+ *  Le résultat est mis en cache : il ne dépend que de la géométrie, pas du masque. */
+function buildReproj(pw, ph){
+  const key = [S.proj, S.W, S.H, S.hfov, S.azCenter,
+    S.cal ? S.cal.pitch : '', S.cal ? S.cal.psi : '',
+    S.altTop, S.altBottom, S.azSpan, S.fileName].join('|');
+  if (S.reprojKey === key && S.reprojCanvas && S.reprojCanvas.width === pw) return S.reprojCanvas;
+  const c = document.createElement('canvas');
+  c.width = pw; c.height = ph;
+  const g = c.getContext('2d');
+  const img = g.createImageData(pw, ph), d = img.data;
+  const src = S.imageData.data, W = S.W, H = S.H, cam = S.cam;
+  const BG = [22, 27, 34];
+  for (let y = 0; y < ph; y++){
+    const alt = 90 - (y + 0.5)/ph*90;
+    for (let x = 0; x < pw; x++){
+      const az = (x + 0.5)/pw*360;
+      const p = azAltToPixel(cam, az, alt);
+      let r = BG[0], v = BG[1], b = BG[2];
+      if (p && p.x >= 0 && p.x < W && p.y >= 0 && p.y < H){
+        const j = ((p.y | 0)*W + (p.x | 0))*4;
+        r = src[j]; v = src[j + 1]; b = src[j + 2];
+      }
+      const k = (y*pw + x)*4;
+      d[k] = r; d[k + 1] = v; d[k + 2] = b; d[k + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  S.reprojCanvas = c; S.reprojKey = key;
+  return c;
+}
+
+function drawChart(){
+  const W = chart.width, H = chart.height;
+  const m = { l: 62, r: 18, t: 26, b: 44 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const X = (az) => m.l + pw*az/360;
+  const Y = (alt) => m.t + ph*(1 - alt/90);
+  cctx.fillStyle = '#141a21'; cctx.fillRect(0, 0, W, H);
+
+  // cellules du masque OU photo dépliée
+  const g = S.grid;
+  const pat = (() => {                      // hachures = directions hors photo
+    const pc = document.createElement('canvas'); pc.width = pc.height = 8;
+    const pg = pc.getContext('2d');
+    pg.strokeStyle = 'rgba(255,255,255,.13)'; pg.lineWidth = 1.4;
+    pg.beginPath(); pg.moveTo(-2, 10); pg.lineTo(10, -2); pg.stroke();
+    pg.beginPath(); pg.moveTo(2, 14); pg.lineTo(14, 2); pg.stroke();
+    return cctx.createPattern(pc, 'repeat');
+  })();
+  // une cellule peut chevaucher la coupure 0°/360°
+  const cellRects = (ia, step) => {
+    const xa = X(norm360(ia*step - step/2));
+    const xe = xa + pw*step/360;
+    if (xe <= m.l + pw + 0.01) return [[xa, xe]];
+    return [[xa, m.l + pw], [m.l, m.l + (xe - (m.l + pw))]];
+  };
+  if (S.chartMode === 'photo' && S.base && S.cam){
+    cctx.drawImage(buildReproj(pw, ph), m.l, m.t);
+    if (!g){
+      cctx.fillStyle = '#dde5ee'; cctx.font = '13px system-ui';
+      cctx.fillText('photo dépliée — calculez le masque pour voir les directions hors photo', m.l + 14, m.t + 24);
+    }
+  } else if (g){
+    for (let il = 0; il < g.nalt; il++){
+      const a0 = Math.max(0, il*g.altStep - g.altStep/2);
+      const a1 = Math.min(90, il*g.altStep + g.altStep/2);
+      const yTop = Y(a1), hCell = Math.max(1, Y(a0) - yTop + 0.6);
+      for (let ia = 0; ia < g.naz; ia++){
+        const i = il*g.naz + ia, o = g.openness[i], cov = g.covered[i];
+        for (const rc of cellRects(ia, g.azStep)){
+          const wR = Math.max(1, rc[1] - rc[0] + 0.6);
+          cctx.fillStyle = cov ? opennessColor(o) : 'rgb(56,64,74)';
+          cctx.fillRect(rc[0], yTop, wR, hCell);
+          if (!cov){ cctx.fillStyle = pat; cctx.fillRect(rc[0], yTop, wR, hCell); }
+        }
+      }
+    }
+  } else {
+    cctx.fillStyle = '#1b232c'; cctx.fillRect(m.l, m.t, pw, ph);
+    cctx.fillStyle = '#8ea2b8'; cctx.font = '16px system-ui';
+    cctx.fillText('masque non calculé', m.l + 20, m.t + 30);
+  }
+  // directions hors photo (par-dessus la photo ou le masque)
+  if (g && S.chartMode === 'photo'){
+    for (let il = 0; il < g.nalt; il++){
+      const a0 = Math.max(0, il*g.altStep - g.altStep/2);
+      const a1 = Math.min(90, il*g.altStep + g.altStep/2);
+      const yTop = Y(a1), hCell = Math.max(1, Y(a0) - yTop + 0.6);
+      for (let ia = 0; ia < g.naz; ia++){
+        if (g.covered[il*g.naz + ia]) continue;
+        for (const rc of cellRects(ia, g.azStep)){
+          cctx.fillStyle = pat;
+          cctx.fillRect(rc[0], yTop, Math.max(1, rc[1] - rc[0] + 0.6), hCell);
+        }
+      }
+    }
+  }
+
+  // grille + axes
+  cctx.strokeStyle = 'rgba(255,255,255,.18)'; cctx.lineWidth = 1;
+  cctx.fillStyle = '#8ea2b8'; cctx.font = '12px system-ui';
+  for (let az = 0; az <= 360; az += 15){
+    cctx.beginPath(); cctx.moveTo(X(az), m.t); cctx.lineTo(X(az), m.t + ph); cctx.stroke();
+  }
+  for (let alt = 0; alt <= 90; alt += 5){
+    cctx.beginPath(); cctx.moveTo(m.l, Y(alt)); cctx.lineTo(m.l + pw, Y(alt)); cctx.stroke();
+  }
+  cctx.strokeStyle = 'rgba(255,255,255,.5)';
+  cctx.beginPath(); cctx.moveTo(m.l, m.t); cctx.lineTo(m.l, m.t + ph); cctx.lineTo(m.l + pw, m.t + ph); cctx.stroke();
+  cctx.fillStyle = '#a9bccf';
+  for (let az = 0; az <= 360; az += 30){
+    const lbl = ({0:'N',90:'E',180:'S',270:'O',360:'N'})[az] || String(az);
+    cctx.textAlign = 'center';
+    cctx.fillText(lbl, X(az), m.t + ph + 16);
+  }
+  cctx.textAlign = 'right';
+  for (let alt = 0; alt <= 90; alt += 15) cctx.fillText(alt + '°', m.l - 7, Y(alt) + 4);
+  cctx.textAlign = 'left';
+  cctx.fillStyle = '#dde5ee'; cctx.font = '600 13px system-ui';
+  cctx.fillText('Hauteur solaire', 8, 16);
+  cctx.fillStyle = '#8ea2b8'; cctx.font = '12px system-ui';
+  cctx.fillText('Azimut (depuis le Nord)', m.l + pw - 160, m.t + ph + 32);
+
+  // courses du soleil
+  const y = 2025;
+  for (let mo = 1; mo <= 12; mo++){
+    const sol = (mo === 6 || mo === 12);
+    cctx.strokeStyle = sol ? 'rgba(255,185,55,.95)' : 'rgba(255,185,55,.4)';
+    cctx.lineWidth = sol ? 2.2 : 1.1;
+    cctx.beginPath(); let on = false;
+    for (let t = 0; t <= 1440; t += 5){
+      const sp = sunPos(S.lat, S.lon, S.tz, y, mo, 21, Math.floor(t/60), t % 60);
+      if (sp.alt < 0){ on = false; continue; }
+      if (!on){ cctx.moveTo(X(sp.az), Y(sp.alt)); on = true; }
+      else cctx.lineTo(X(sp.az), Y(sp.alt));
+    }
+    cctx.stroke();
+  }
+  drawDemOnChart(X, Y);
+  // heures sur la course du 21 mars
+  cctx.fillStyle = 'rgba(255,255,255,.85)'; cctx.font = '10.5px system-ui'; cctx.textAlign = 'center';
+  for (let hh = 0; hh < 24; hh++){
+    for (let mm = 0; mm < 60; mm += 10){
+      const sp = sunPos(S.lat, S.lon, S.tz, y, 3, 21, hh, mm);
+      if (sp.alt < 0) continue;
+      const px = X(sp.az), py = Y(sp.alt);
+      cctx.beginPath(); cctx.arc(px, py, 1.9, 0, 7); cctx.fill();
+      if (mm === 0 && hh % 1 === 0) cctx.fillText(hh + 'h', px, py - 6);
+    }
+  }
+  // marqueur date/heure
+  const sp = sunAtMarker();
+  if (sp && sp.alt > 0 && S.grid){
+    const o = sampleGrid(S.grid, sp.az, sp.alt);
+    const cov = S.grid.covered[gridCellIndex(S.grid, sp.az, sp.alt)];
+    cctx.beginPath(); cctx.arc(X(sp.az), Y(sp.alt), 7, 0, 7);
+    cctx.fillStyle = !cov ? '#8ea2b8' : (o > 0.5 ? '#ffe14e' : '#ff6b5e');
+    cctx.fill();
+    cctx.strokeStyle = '#111'; cctx.lineWidth = 2; cctx.stroke();
+    cctx.fillStyle = '#dde5ee'; cctx.textAlign = 'left'; cctx.font = '11.5px system-ui';
+    cctx.fillText(cov ? (o*100).toFixed(0) + ' % ouvert' : 'hors photo (' + (o*100).toFixed(0) + ' % supposé)',
+      X(sp.az) + 11, Y(sp.alt) + 4);
+  }
+  // légende
+  cctx.textAlign = 'left'; cctx.font = '11.5px system-ui';
+  const legX = m.l + 8, legY = m.t + 12;
+  if (S.chartMode === 'photo'){
+    cctx.fillStyle = '#dde5ee';
+    cctx.fillText('photo dépliée en azimut × hauteur', legX, legY + 2);
+    cctx.fillStyle = '#8ea2b8';
+    cctx.fillText('hachures = directions hors photo', legX + 210, legY + 2);
+  } else {
+    const grad = cctx.createLinearGradient(legX, 0, legX + 120, 0);
+    for (let k = 0; k < OPENNESS_SCALE.length; k++)
+      grad.addColorStop(k/(OPENNESS_SCALE.length - 1), opennessColor(k/(OPENNESS_SCALE.length - 1)));
+    cctx.fillStyle = grad; cctx.fillRect(legX, legY - 9, 120, 11);
+    cctx.strokeStyle = 'rgba(0,0,0,.5)'; cctx.strokeRect(legX, legY - 9, 120, 11);
+    cctx.fillStyle = '#dde5ee';
+    cctx.fillText('0 %', legX - 2, legY + 15);
+    cctx.fillText('100 % ouvert au ciel', legX + 30, legY + 15);
+    cctx.fillStyle = '#8ea2b8';
+    cctx.fillText('hachures = directions hors photo (valeur supposée : '
+      + (S.uncovered*100).toFixed(0) + ' %)', legX + 210, legY + 15);
+  }
+}
+
+/* ==========================================================================
+   8. INTERACTIONS SOURIS / TACTILE
+   ========================================================================== */
+function evtPos(e){
+  const r = view.getBoundingClientRect();
+  return { x: (e.clientX - r.left)*(S.W/r.width), y: (e.clientY - r.top)*(S.H/r.height) };
+}
+function nearHandle(p){
+  if (!S.hz || S.manual) return null;
+  const tol = 14*(S.W/Math.max(1, view.getBoundingClientRect().width));
+  if (Math.hypot(p.x - S.hz.x1, p.y - S.hz.y1) < tol) return 'a';
+  if (Math.hypot(p.x - S.hz.x2, p.y - S.hz.y2) < tol) return 'b';
+  return null;
+}
+
+view.addEventListener('pointerdown', (e) => {
+  if (!S.base) return;
+  view.setPointerCapture(e.pointerId);
+  const p = evtPos(e);
+  if (S.mode === 'horizon'){
+    const h = nearHandle(p);
+    if (h){ S.drag = { mode: 'handle', which: h }; return; }
+    S.hz = { x1: p.x, y1: p.y, x2: p.x + 1, y2: p.y };
+    S.drag = { mode: 'handle', which: 'b', fresh: true };
+  } else if (S.mode === 'dem'){
+    // accrochage à la frontière ciel/obstacle de la colonne (si le masque existe)
+    let q = { x: Math.round(p.x), y: Math.round(p.y) };
+    if (S.auto && S.W){
+      const x = Math.min(S.W - 1, Math.max(0, Math.round(p.x)));
+      let best = -1;
+      for (let y = Math.max(0, Math.round(p.y) - Math.round(S.H*0.06));
+           y < Math.min(S.H, Math.round(p.y) + Math.round(S.H*0.06)); y++){
+        const i = y*S.W + x;
+        if (S.auto[i] === 1){ best = y; break; }      // premier pixel de ciel au-dessus du clic
+      }
+      if (best >= 0) q = { x, y: best };
+    }
+    S.dem.points.push(q);
+    if (S.dem.points.length > 6) S.dem.points.shift();
+    S.dem.fit = null;
+    demUI(); draw();
+    logMsg('repère relief placé (' + S.dem.points.length + ')');
+    return;
+  } else {
+    S.undo.push(S.brush.slice());
+    if (S.undo.length > 12) S.undo.shift();
+    const val = (S.mode === 'brushSky') ? 1 : (S.mode === 'brushObs') ? 2 : 0;   // gomme : retour à l'automatique
+    S.drag = { mode: 'paint', val, last: p };
+    paintCircle(p.x, p.y, S.brushSize, val);
+    draw();
+  }
+});
+
+view.addEventListener('pointermove', (e) => {
+  if (!S.base) return;
+  const p = evtPos(e);
+  const d = pixelToAzAlt(S.cam, p.x, p.y);
+  S.hover = { x: p.x, y: p.y, az: d.az, alt: d.alt };
+  if (S.drag){
+    if (S.drag.mode === 'handle'){
+      if (S.drag.which === 'a'){ S.hz.x1 = p.x; S.hz.y1 = p.y; }
+      else { S.hz.x2 = p.x; S.hz.y2 = p.y; }
+      S.manual = false; $('manualCalib').checked = false;
+      if (S.drag.fresh && Math.hypot(S.hz.x2 - S.hz.x1, S.hz.y2 - S.hz.y1) > 40) S.drag.fresh = false;
+      updateCam();
+    } else {
+      const last = S.drag.last;
+      const dist = Math.hypot(p.x - last.x, p.y - last.y);
+      const nseg = Math.max(1, Math.ceil(dist/(S.brushSize/2)));
+      for (let k = 1; k <= nseg; k++){
+        paintCircle(last.x + (p.x - last.x)*k/nseg, last.y + (p.y - last.y)*k/nseg, S.brushSize, S.drag.val);
+      }
+      S.drag.last = p;
+    }
+    draw();
+  } else draw();
+  setStatus();
+});
+
+view.addEventListener('pointerup', (e) => {
+  if (S.drag){
+    if (S.drag.mode === 'paint'){ computeMask(); }
+    else if (S.drag.fresh){
+      // ligne dégénérée : on rétablit une ligne par défaut
+      S.hz = { x1: S.W*0.08, y1: S.H*0.5, x2: S.W*0.92, y2: S.H*0.5 };
+      updateCam(); draw();
+    }
+    S.drag = null;
+  }
+});
+view.addEventListener('pointerleave', () => { S.hover = null; setStatus(); draw(); });
+
+/* glisser-déposer sur la fenêtre */
+window.addEventListener('dragover', (e) => { e.preventDefault(); });
+window.addEventListener('drop', (e) => {
+  e.preventDefault();
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+});
+
+/* ==========================================================================
+   9. LIAISONS INTERFACE
+   ========================================================================== */
+function setHfov(v, quiet){
+  S.hfov = clamp(v, 10, 175);
+  updateHfovUI(quiet);
+  updateCam(); draw();
+}
+function updateHfovUI(quiet){
+  $('hfovR').value = S.hfov; $('hfovN').value = S.hfov.toFixed(1);
+  const f35 = S.base ? f35FromHfov(S.hfov, S.W, S.H) : null;
+  $('f35info').innerHTML = 'focale ≈ <b>' + (f35 ? f35.toFixed(1) : '–') + ' mm</b> éq. 35 mm'
+    + (S.f35 ? '  <span class="ok">(EXIF : ' + S.f35 + ' mm)</span>' : '')
+    + ' — couvre <b>' + (S.base ? (2*Math.atan(Math.tan(S.hfov*DEG/2)*S.H/S.W)*R2D).toFixed(0) : '–')
+    + '°</b> en vertical';
+  if (!quiet) logMsg('champ de vision horizontal = ' + S.hfov.toFixed(1) + '°');
+}
+function setAz(v){
+  S.azCenter = norm360(v);
+  $('azCenterR').value = S.azCenter; $('azCenterN').value = S.azCenter.toFixed(0);
+  updateCam(); draw();
+}
+function setMode(mode){
+  S.mode = mode;
+  $('modeHorizon').classList.toggle('on', mode === 'horizon');
+  $('modeBrushSky').classList.toggle('on', mode === 'brushSky');
+  $('modeBrushObs').classList.toggle('on', mode === 'brushObs');
+  $('modeEraser').classList.toggle('on', mode === 'eraser');
+  $('btnDemMode').classList.toggle('on', mode === 'dem');
+  view.style.cursor = mode === 'horizon' ? 'crosshair' : 'none';
+  $('modeHint').innerHTML = (mode === 'dem')
+    ? 'Pointez un <b>repère de la silhouette</b> (sommet, col, épaule) : le clic s’accroche à la frontière ciel/obstacle. Deux à trois repères étalés suffisent, puis « Ajuster ».'
+    : (S.proj === 'equirect'
+      ? 'Mode photosphère : la géométrie est donnée par la projection équirectangulaire — aucun '
+        + 'calibrage d’horizon n’est nécessaire. Servez-vous des pinceaux pour corriger le ciel.'
+      : (mode === 'horizon'
+        ? 'Cliquez-glissez sur la <b>ligne d’horizon réelle</b> (altitude 0°) : deux points suffisent, l’outil en déduit l’inclinaison et le roulis. '
+          + 'Par défaut la ligne est au <b>centre vertical</b> de l’image, c’est-à-dire l’hypothèse « appareil d’aplomb » (inclinaison 0°).'
+        : (mode === 'brushSky'
+          ? 'Pinceau <b>ciel</b> : peignez les zones de ciel oubliées par la détection automatique (bleu hachuré = ciel).'
+          : (mode === 'brushObs'
+            ? 'Pinceau <b>obstacle</b> : peignez ce qui masque le ciel (cadre, garde-corps, toiture, arbres).'
+            : 'Gomme : efface la retouche et rend la main à la <b>détection automatique</b> — annule aussi bien du ciel ajouté que de l’obstacle forcé.'))));
+  draw();
+}
+
+/** Bascule entre projection rectiligne (photo) et équirectangulaire (photosphère 360°) */
+function setProjection(p, quiet){
+  S.proj = (p === 'equirect') ? 'equirect' : 'rect';
+  const eq = (S.proj === 'equirect');
+  $('projRect').classList.toggle('on', !eq);
+  $('projEq').classList.toggle('on', eq);
+  if (S.base){
+    $('hfovRow').style.display = eq ? 'none' : 'flex';
+    $('hfovPresets').style.display = eq ? 'none' : 'flex';
+    $('f35info').style.display = eq ? 'none' : '';
+    $('modeHorizon').disabled = eq;
+    $('btnHorizReset').style.display = eq ? 'none' : '';
+    $('manualRow').style.display = (!eq && S.manual) ? 'flex' : 'none';
+    if (eq && S.mode === 'horizon') setMode('brushSky'); else setMode(S.mode);
+  }
+  updateCam(); computeMaskSafe(); draw();
+  if (!quiet) logMsg('projection : ' + (eq ? 'équirectangulaire (photosphère)'
+    : 'rectiligne (sténopé) — calibrage par la ligne d’horizon'));
+}
+
+$('btnFile').onclick = () => $('file').click();
+$('file').onchange = (e) => { if (e.target.files[0]) loadFile(e.target.files[0]); };
+$('btnDemo').onclick = () => {
+  const c = makeDemo();
+  installImage(c, c.width, c.height, 'démo');
+  setHfov(65, true);
+  S.f35 = null; updateHfovUI(true);
+  logMsg('image de démonstration chargée');
+};
+$('hfovR').oninput = (e) => setHfov(parseFloat(e.target.value), true);
+$('hfovN').onchange = (e) => setHfov(parseFloat(e.target.value));
+document.querySelectorAll('button[data-f35]').forEach(b => {
+  b.onclick = () => {
+    if (!S.base) return;
+    setHfov(hfovFromF35(parseFloat(b.dataset.f35), S.W, S.H), true);
+    logMsg('objectif ' + b.textContent + ' → champ ' + S.hfov.toFixed(1) + '°');
+  };
+});
+
+$('modeHorizon').onclick = () => setMode('horizon');
+$('modeBrushSky').onclick = () => setMode('brushSky');
+$('modeBrushObs').onclick = () => setMode('brushObs');
+$('modeEraser').onclick = () => setMode('eraser');
+$('projRect').onclick = () => setProjection('rect');
+$('projEq').onclick = () => setProjection('equirect');
+
+/* --- Relief (MNT IGN) : liaisons --- */
+$('btnDem').onclick = () => demFetch();
+$('demStepSel').onchange = (e) => { S.dem.step = parseFloat(e.target.value); };
+$('demHCam').onchange = (e) => {
+  S.dem.hCam = Math.max(0, parseFloat(e.target.value) || 0);
+  if (S.dem.profile) demFetch();          // recalcul du profil avec la nouvelle hauteur
+};
+$('demShow').onchange = (e) => { S.dem.show = e.target.checked; draw(); drawChart(); };
+$('btnDemMode').onclick = () => {
+  if (!S.dem.profile) return alert('Calculez d’abord la silhouette MNT.');
+  setMode('dem');
+};
+$('btnDemFit').onclick = () => demFitPose();
+$('btnDemApply').onclick = () => demApply();
+$('btnDemClear').onclick = () => { S.dem.points = []; S.dem.fit = null; demUI(); draw(); drawChart(); };
+
+/** Bascule du diagramme entre taux d'ouverture et photo dépliée */
+function setChartMode(mode){
+  S.chartMode = (mode === 'photo') ? 'photo' : 'mask';
+  $('chartMask').classList.toggle('on', S.chartMode === 'mask');
+  $('chartPhoto').classList.toggle('on', S.chartMode === 'photo');
+  $('chartInfo').textContent = (!S.base) ? ''
+    : (S.chartMode === 'photo'
+      ? 'chaque point du diagramme montre la direction correspondante de la photo'
+      : '');
+  drawChart();
+}
+$('chartMask').onclick = () => setChartMode('mask');
+$('chartPhoto').onclick = () => setChartMode('photo');
+$('brushSizeR').oninput = (e) => {
+  S.brushSize = parseFloat(e.target.value);
+  $('brushSizeVal').textContent = S.brushSize.toFixed(0) + ' px';
+  draw();
+};
+$('azCenterR').oninput = (e) => setAz(parseFloat(e.target.value));
+$('azCenterN').onchange = (e) => setAz(parseFloat(e.target.value));
+$('manualCalib').onchange = (e) => {
+  S.manual = e.target.checked;
+  $('manualRow').style.display = S.manual ? 'flex' : 'none';
+  updateCam(); draw();
+};
+$('pitchN').onchange = (e) => { S.manPitch = parseFloat(e.target.value) || 0; S.manual = true; $('manualCalib').checked = true; $('manualRow').style.display = 'flex'; updateCam(); draw(); };
+$('psiN').onchange = (e) => { S.manPsi = parseFloat(e.target.value) || 0; S.manual = true; $('manualCalib').checked = true; $('manualRow').style.display = 'flex'; updateCam(); draw(); };
+$('btnStraighten').onclick = () => { S.manPsi = 0; $('psiN').value = '0'; updateCam(); draw(); };
+$('btnHorizReset').onclick = () => {
+  S.hz = { x1: S.W*0.08, y1: S.H*0.5, x2: S.W*0.92, y2: S.H*0.5 };
+  S.manual = false; $('manualCalib').checked = false;
+  $('pitchN').value = '0';
+  updateCam(); draw(); computeMaskSafe();
+};
+$('chkGrid').onchange = (e) => { S.showGrid = e.target.checked; draw(); };
+
+$('btnDetect').onclick = () => detectSky(true);
+$('btnInvert').onclick = () => {
+  S.undo.push(S.brush.slice());
+  const n = S.W*S.H;
+  for (let i = 0; i < n; i++) S.brush[i] = (S.brush[i] === 1) ? 2 : 1;
+  buildOverlay(); computeMask(); draw();
+  logMsg('masque inversé (corrections pinceau)');
+};
+$('btnClearBrush').onclick = () => {
+  S.undo.push(S.brush.slice());
+  S.brush.fill(0); buildOverlay(); computeMask(); draw();
+  logMsg('corrections au pinceau effacées');
+};
+$('btnUndo').onclick = () => {
+  if (!S.undo.length) return;
+  S.brush.set(S.undo.pop());
+  buildOverlay(); computeMask(); draw();
+  logMsg('annulation');
+};
+$('thresR').oninput = (e) => { S.threshold = parseFloat(e.target.value); $('thresVal').textContent = S.threshold + ' %'; S.flood = $('chkFlood').checked; scheduleDetect(); };
+$('chkFlood').onchange = (e) => { S.flood = e.target.checked; scheduleDetect(); };
+$('borderR').oninput = (e) => {
+  S.border = parseFloat(e.target.value);
+  $('borderVal').textContent = S.border + ' %';
+  scheduleDetect();
+};
+document.querySelectorAll('input[name=unc]').forEach(r => {
+  r.onchange = () => { S.uncovered = $('uncOpen').checked ? 1 : 0; if (S.grid) computeMask(); updateMaskUI(); drawChart(); };
+});
+
+$('latN').onchange = $('lonN').onchange = $('tzN').onchange = () => {
+  S.lat = parseFloat($('latN').value) || 0;
+  S.lon = parseFloat($('lonN').value) || 0;
+  S.tz = parseFloat($('tzN').value) || 0;
+  updateSunReadout(); draw();
+};
+$('chkDst').onchange = (e) => { S.dst = e.target.checked; updateSunReadout(); draw(); };
+$('dateIn').onchange = $('timeIn').onchange = () => {
+  S.date = $('dateIn').value; S.time = $('timeIn').value;
+  updateSunReadout(); draw();
+};
+$('btnNow').onclick = () => {
+  const d = new Date();
+  S.date = d.toISOString().slice(0, 10);
+  $('dateIn').value = S.date;
+  $('timeIn').value = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  S.time = $('timeIn').value;
+  updateSunReadout(); draw();
+};
+$('chkSun').onchange = (e) => { S.showSun = e.target.checked; draw(); };
+$('azStepSel').onchange = (e) => { S.azStep = parseFloat(e.target.value); computeMaskSafe(); };
+$('altStepSel').onchange = (e) => { S.altStep = parseFloat(e.target.value); computeMaskSafe(); };
+$('btnComputeMask').onclick = () => computeMask();
+$('chkLeap').onchange = () => updateMonthly();
+$('chkFr').onchange = () => {};
+
+function computeMaskSafe(){ if (S.grid) computeMask(); }
+function updateSunReadout(){
+  const sp = sunAtMarker();
+  if (!sp){ $('sunReadout').innerHTML = ''; return; }
+  const o = (sp.alt > 0 && S.grid) ? sampleGrid(S.grid, sp.az, sp.alt) : null;
+  const cov = (S.grid && sp.alt > 0) ? S.grid.covered[gridCellIndex(S.grid, sp.az, sp.alt)] : false;
+  $('sunReadout').innerHTML =
+    row2('azimut du soleil', sp.az.toFixed(1) + '°')
+  + row2('hauteur du soleil', sp.alt.toFixed(1) + '°' + (sp.alt <= 0 ? ' <span class="warn">(nuit)</span>' : ''))
+  + row2('ouverture du masque', o === null ? '–' : '<b>' + (o*100).toFixed(0) + ' %</b>'
+      + (sp.alt <= 0 ? '' : (!cov ? ' <span class="mut">(direction hors photo → valeur supposée)</span>'
+        : (o < 0.02 ? ' <span class="err">masqué</span>' : (o > 0.98 ? ' <span class="ok">dégagé</span>'
+          : ' <span class="warn">partiel</span>')))));
+  $('stSun').textContent = 'az ' + sp.az.toFixed(0) + '° / haut ' + sp.alt.toFixed(0) + '°'
+    + (o === null ? '' : ' · ' + (o*100).toFixed(0) + ' %');
+}
+
+/* ==========================================================================
+   10. EXPORTS
+   ========================================================================== */
+function download(name, text, mime){
+  const blob = new Blob([text], { type: mime || 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  logMsg('téléchargé : ' + name);
+}
+function csvNum(v, fr){
+  const s = v.toFixed(2);
+  return fr ? s.replace('.', ',') : s;
+}
+/** Métadonnées EXIF de la photo, en une ligne (traçabilité des calculs) */
+function exifMeta(){
+  const e = S.exif;
+  if (!e) return null;
+  return {
+    make_model: [e.make, e.model].filter(Boolean).join(' ') || null,
+    lens: e.lens, focal_mm: e.focal, focal_35mm_equiv: e.f35,
+    digital_zoom: e.digitalZoom, orientation_tag: e.orient,
+    date_time_original: e.date, offset_time_original_h: e.offset,
+    gps: (e.lat !== null && e.lon !== null)
+      ? { latitude: +e.lat.toFixed(6), longitude: +e.lon.toFixed(6),
+          altitude_m: e.alt, accuracy_m: e.gpsAcc } : null,
+    camera_heading_deg: e.heading, camera_heading_ref: e.headingRef
+  };
+}
+function exifLine(){
+  const m = exifMeta();
+  if (!m) return 'photo : aucune metadonnee EXIF exploitable';
+  const p = [];
+  if (m.make_model) p.push(m.make_model);
+  if (m.lens) p.push(m.lens);
+  if (m.focal_35mm_equiv) p.push('focale ' + m.focal_35mm_equiv + ' mm eq. 35');
+  if (m.date_time_original) p.push('prise de vue ' + m.date_time_original);
+  if (m.offset_time_original_h !== null && m.offset_time_original_h !== undefined)
+    p.push('decalage ' + (m.offset_time_original_h >= 0 ? '+' : '') + m.offset_time_original_h + ' h');
+  if (m.gps) p.push('GPS ' + m.gps.latitude + ', ' + m.gps.longitude
+    + (m.gps.accuracy_m ? ' (precision ' + Math.round(m.gps.accuracy_m) + ' m)' : ''));
+  if (m.camera_heading_deg !== null && m.camera_heading_deg !== undefined)
+    p.push('cap appareil ' + m.camera_heading_deg + ' deg'
+      + (m.camera_heading_ref === 'M' ? ' (magnetique)' : ''));
+  if (m.digital_zoom && m.digital_zoom > 1.01) p.push('zoom numerique x' + m.digital_zoom);
+  return 'photo : ' + p.join(' ; ');
+}
+function csvHeaderLines(){
+  const fr = $('chkFr').checked;
+  const sep = fr ? ';' : ',';
+  const m = S.grid.metrics;
+  const L = [
+    'Masque solaire - taux d ouverture au ciel (%)',
+    'fichier source : ' + (S.fileName || '-'),
+    'date de calcul : ' + new Date().toISOString(),
+    'projection : ' + (S.proj === 'equirect'
+      ? ('equirectangulaire (photosphere) ; etendue azimutale ' + S.azSpan.toFixed(1)
+         + ' deg ; hauteur ' + S.cam.altTop.toFixed(1) + ' a ' + S.cam.altBottom.toFixed(1) + ' deg')
+      : ('rectilineaire (stenope), focale ' + S.cal.f.toFixed(1) + ' px pour ' + S.W + 'x' + S.H + ' px')),
+    ...(S.proj === 'equirect' ? [] : [
+    'champ horizontal : ' + S.hfov.toFixed(2) + ' deg ; azimut du centre optique : '
+      + S.cam.azCenter.toFixed(1) + ' deg',
+    'inclinaison (pitch) : ' + S.cam.pitchDeg.toFixed(2) + ' deg ; roulis (roll) : '
+      + S.cam.rollDeg.toFixed(2) + ' deg',
+    'hauteur de la ligne d horizon supposee : 0 deg']),
+    ...(S.proj === 'equirect' ? ['azimut au centre de l image : ' + S.cam.azCenter.toFixed(1) + ' deg'] : []),
+    'part du demi-ciel couverte par la photo : ' + (m.coverage*100).toFixed(1) + ' %',
+    'SVF zone couverte : ' + (m.svfCov*100).toFixed(1) + ' % ; SVF demi-ciel estime : '
+      + (m.svfEst*100).toFixed(1) + ' %',
+    'directions hors photo : ouverture supposee ' + (S.uncovered*100).toFixed(0) + ' %',
+    'detection auto : seuil ' + S.threshold + ' %, connexite haut ' + (S.flood ? 'oui' : 'non')
+      + ', bordure exclue ' + S.border + ' %',
+    exifLine(),
+    'lignes = hauteur solaire (deg), colonnes = azimut depuis le Nord (deg)',
+    'cellules vides (photo) remplies avec la valeur supposee ci-dessus'
+  ];
+  return L.map(l => (fr ? '' : '# ') + l).join('\n') + '\n';
+}
+$('btnCsvMask').onclick = () => {
+  if (!S.grid) return alert('Calculez d’abord le masque.');
+  const fr = $('chkFr').checked, sep = fr ? ';' : ',';
+  const g = S.grid;
+  let out = csvHeaderLines();
+  out += (fr ? 'hauteur\\azimut' : 'altitude\\azimuth');
+  for (let ia = 0; ia < g.naz; ia++) out += sep + norm360(ia*g.azStep);
+  out += '\n';
+  for (let il = 0; il < g.nalt; il++){
+    out += (il*g.altStep);
+    for (let ia = 0; ia < g.naz; ia++) out += sep + csvNum(g.openness[il*g.naz + ia]*100, fr);
+    out += '\n';
+  }
+  download('masque_solaire.csv', out, 'text/csv;charset=utf-8');
+};
+$('btnJson').onclick = () => {
+  if (!S.grid) return alert('Calculez d’abord le masque.');
+  const g = S.grid;
+  const m = [];
+  for (let il = 0; il < g.nalt; il++){
+    const r = [];
+    for (let ia = 0; ia < g.naz; ia++) r.push(+(g.openness[il*g.naz + ia]*100).toFixed(2));
+    m.push(r);
+  }
+  const obj = {
+    version: '1.0',
+    generated: new Date().toISOString(),
+    source: { file: S.fileName || null, width: S.srcW, height: S.srcH, working: [S.W, S.H] },
+    exif: exifMeta(),
+    projection: S.proj === 'equirect' ? {
+      type: 'equirectangular',
+      azimuth_span_deg: +S.azSpan.toFixed(3),
+      azimuth_at_image_center_deg: +S.cam.azCenter.toFixed(2),
+      altitude_top_deg: +S.cam.altTop.toFixed(3),
+      altitude_bottom_deg: +S.cam.altBottom.toFixed(3)
+    } : {
+      type: 'rectilinear',
+      hfov_deg: +S.hfov.toFixed(3),
+      focal_px: +S.cal.f.toFixed(3),
+      focal_35mm_equiv: +f35FromHfov(S.hfov, S.W, S.H).toFixed(2),
+      azimuth_optical_center_deg: +S.cam.azCenter.toFixed(2),
+      pitch_deg: +S.cam.pitchDeg.toFixed(3),
+      roll_deg: +S.cam.rollDeg.toFixed(3),
+      horizon_line_px: S.hz,
+      manual_calibration: S.manual
+    },
+    location: { latitude: S.lat, longitude: S.lon, utc_offset_standard_h: S.tz },
+    detection: {
+      auto_threshold_pct: S.threshold,
+      flood_from_top: S.flood,
+      border_excluded_pct: S.border,
+      brush_corrections_applied: Array.prototype.some.call(S.brush, b => b !== 0)
+    },
+    mask: {
+      azimuth_step_deg: g.azStep, altitude_step_deg: g.altStep,
+      azimuth_centers_deg: Array.from({length: g.naz}, (_, i) => norm360(i*g.azStep)),
+      altitude_centers_deg: Array.from({length: g.nalt}, (_, i) => i*g.altStep),
+      openness_pct: m,
+      covered: (() => { const r = []; for (let il = 0; il < g.nalt; il++){ const q = []; for (let ia = 0; ia < g.naz; ia++) q.push(g.covered[il*g.naz + ia]); r.push(q); } return r; })(),
+      uncovered_assumed_openness_pct: S.uncovered*100
+    },
+    metrics: {
+      hemisphere_coverage_pct: +(g.metrics.coverage*100).toFixed(2),
+      sky_view_factor_covered_pct: +(g.metrics.svfCov*100).toFixed(2),
+      sky_view_factor_estimated_pct: +(g.metrics.svfEst*100).toFixed(2),
+      solid_angle_covered_sr: +g.metrics.omegaCov.toFixed(4),
+      solid_angle_hemisphere_sr: +g.metrics.omegaAll.toFixed(4)
+    },
+    monthly_daylight: S.monthly ? S.monthly.map((mo, i) => ({
+      month: i + 1, sun_hours: mo.nSun, unshaded_hours: mo.fullSun,
+      mean_openness_pct: mo.nSun ? +(mo.sunOpen/mo.nSun*100).toFixed(2) : null
+    })) : null
+  };
+  download('masque_solaire.json', JSON.stringify(obj, null, 2), 'application/json');
+};
+$('btnPngChart').onclick = () => {
+  chart.toBlob((b) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b); a.download = 'diagramme_masque.png';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    logMsg('téléchargé : diagramme_masque.png');
+  }, 'image/png');
+};
+$('btnPngPhoto').onclick = () => {
+  view.toBlob((b) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b); a.download = 'photo_masque.png';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    logMsg('téléchargé : photo_masque.png');
+  }, 'image/png');
+};
+
+$('btnCsv8760').onclick = () => {
+  if (!S.grid) return alert('Calculez d’abord le masque.');
+  const h = computeHourly();
+  if (!h) return;
+  const header = '! Masque solaire - facteur d ombrage horaire, heure locale standard (sans heure d ete)\n'
+    + '! colonne 1 : ouverture au ciel (1 = soleil visible, 0 = soleil masque)\n'
+    + '! colonne 2 : ombrage = 1 - ouverture (1 = masque)\n'
+    + '! ' + exifLine() + '\n'
+    + '! latitude ' + S.lat + ', longitude ' + S.lon + ', UTC+' + S.tz + ' ; '
+    + h.length + ' heures\n';
+  let out = header;
+  for (let i = 0; i < h.length; i++){
+    out += h[i].open.toFixed(3) + ',' + (1 - h[i].open).toFixed(3) + '\n';
+  }
+  download('ombrage_8760.csv', out, 'text/csv;charset=utf-8');
+  $('epSnippet').value = makeEpSnippet('ombrage_8760.csv', h.length, header.split('\n').length - 1);
+};
+$('btnCsvSolar').onclick = () => {
+  if (!S.grid) return alert('Calculez d’abord le masque.');
+  const h = computeHourly();
+  if (!h) return;
+  let out = '! Detail du calcul : position du soleil et ouverture du masque, heure par heure\n';
+  out += 'num_heure,jour_annee,mois,jour,heure_locale,azimut_deg,hauteur_deg,ouverture\n';
+  for (let i = 0; i < h.length; i++){
+    const x = h[i];
+    out += (i + 1) + ',' + x.doy + ',' + x.m + ',' + x.d + ',' + (x.hour) + ','
+      + x.az.toFixed(2) + ',' + x.alt.toFixed(2) + ',' + x.open.toFixed(4) + '\n';
+  }
+  download('soleil_horaire.csv', out, 'text/csv;charset=utf-8');
+};
+function makeEpSnippet(fileName, nHours, rows){
+  const skip = rows || 5;
+  return '! --------------------------------------------------------------------------\n'
+  + '! Masque solaire issu de photo - blocs EnergyPlus\n'
+  + '! colonne 1 = ouverture au ciel (1 = soleil visible)  -> shading "fraicheur"\n'
+  + '! colonne 2 = ombrage (1 = masque)                    -> WindowShadingControl\n'
+  + '! --------------------------------------------------------------------------\n'
+  + 'ScheduleTypeLimits,\n  MasqueSolaire_Fraction,  !- Name\n  0,                       !- Lower Limit Value\n'
+  + '  1,                       !- Upper Limit Value\n  Continuous;              !- Numeric Type\n\n'
+  + 'Schedule:File,\n  MasqueSolaire_Ouverture, !- Name\n  MasqueSolaire_Fraction,  !- Schedule Type Limits Name\n'
+  + '  ' + fileName + ',  !- File Name\n  1,                       !- Column Number\n  ' + skip + ',                       !- Rows to Skip at Top\n'
+  + '  ' + nHours + ',                 !- Number of Hours of Data\n  Comma,                   !- Column Separator\n'
+  + '  No,                      !- Interpolate to Timestep\n  60,                      !- Minutes per Item\n'
+  + '  No;                      !- Adjust Schedule for Daylight Saving\n\n'
+  + 'Schedule:File,\n  MasqueSolaire_Ombrage,   !- Name\n  MasqueSolaire_Fraction,  !- Schedule Type Limits Name\n'
+  + '  ' + fileName + ',  !- File Name\n  2,                       !- Column Number\n  ' + skip + ',                       !- Rows to Skip at Top\n'
+  + '  ' + nHours + ',                 !- Number of Hours of Data\n  Comma,                   !- Column Separator\n'
+  + '  No,                      !- Interpolate to Timestep\n  60,                      !- Minutes per Item\n'
+  + '  No;                      !- Adjust Schedule for Daylight Saving\n\n'
+  + '! --------------------------------------------------------------------------\n'
+  + '! Utilisation :\n'
+  + '!  - WindowShadingControl avec Shading Control Type = OnIfScheduleAllows et la\n'
+  + '!    schedule MasqueSolaire_Ombrage : le dispositif est active quand le soleil est masque.\n'
+  + '!    Renseigner la transmittance solaire de l ecran exterieur pour nuancer.\n'
+  + '!  - Pour un facteur multiplicatif continu, utiliser MasqueSolaire_Ouverture en EMS\n'
+  + '!    (EnergyManagementSystem:Actuator sur Surface / ConstructionProperty:...).\n'
+  + '! --------------------------------------------------------------------------\n';
+}
+$('btnIdf').onclick = () => {
+  const n = $('chkLeap').checked ? 8784 : 8760;
+  download('masque_energyplus.idf', makeEpSnippet('ombrage_8760.csv', n), 'text/plain;charset=utf-8');
+};
+$('btnCopy').onclick = async () => {
+  try{ await navigator.clipboard.writeText($('epSnippet').value); logMsg('bloc copié dans le presse-papier'); }
+  catch(e){ logMsg('copie impossible : ' + e.message); }
+};
+
+/* ==========================================================================
+   11. DÉMARRAGE
+   ========================================================================== */
+setMode('horizon');
+updateHfovUI(true);
+updateSunReadout();
+drawChart();
+setStatus();
+$('epSnippet').value = makeEpSnippet('ombrage_8760.csv', 8760);
+window.__MS = S;
+logMsg('prêt — chargez une photo (ou l’image de démonstration)');
+</script>
+</body>
+</html>
